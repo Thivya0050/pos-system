@@ -1,11 +1,12 @@
 @import "tailwindcss";
 
 :root {
-  --background: #f8f9fa;
+  --background: #ffffff;
   --foreground: #111827;
-  --sidebar: #0a0a0a;
-  --accent: #6366f1;
-  --cart-bg: #1a1a2e;
+  --sidebar: #111827;
+  --accent: #2563eb;
+  --muted: #6b7280;
+  --border: #e5e7eb;
 }
 
 @theme inline {
@@ -24,7 +25,7 @@ body {
 @keyframes fade-in {
   from {
     opacity: 0;
-    transform: translateY(6px);
+    transform: translateY(4px);
   }
   to {
     opacity: 1;
@@ -33,7 +34,7 @@ body {
 }
 
 .page-enter {
-  animation: fade-in 0.25s ease-out;
+  animation: fade-in 0.2s ease-out;
 }
 
 @media print {
@@ -61,14 +62,4 @@ body {
   .no-print {
     display: none !important;
   }
-}
-
-.card {
-  background: #ffffff;
-  border-radius: 0.75rem;
-  box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.08), 0 1px 2px -1px rgb(0 0 0 / 0.08);
-}
-
-.card:hover {
-  box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.08), 0 2px 4px -2px rgb(0 0 0 / 0.06);
 }

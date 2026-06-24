@@ -1,17 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import {
-  AlertTriangle,
-  Loader2,
-  Package,
-  Pencil,
-  Plus,
-  Search,
-  Trash2,
-  X,
-  XCircle,
-} from "lucide-react";
+import { Loader2, Pencil, Search, Trash2, X } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import type { ProductRow } from "@/types/database";
 
@@ -57,21 +47,12 @@ function formatRM(amount: number) {
 
 function getStockStatus(stock: number) {
   if (stock === 0) {
-    return {
-      label: "Out of Stock",
-      className: "bg-red-500/10 text-red-600 ring-1 ring-red-500/20",
-    };
+    return { label: "Out of Stock", dot: "bg-red-500" };
   }
   if (stock <= 10) {
-    return {
-      label: "Low Stock",
-      className: "bg-amber-500/10 text-amber-600 ring-1 ring-amber-500/20",
-    };
+    return { label: "Low Stock", dot: "bg-amber-500" };
   }
-  return {
-    label: "In Stock",
-    className: "bg-emerald-500/10 text-emerald-600 ring-1 ring-emerald-500/20",
-  };
+  return { label: "In Stock", dot: "bg-gray-400" };
 }
 
 export default function ProductsPage() {
@@ -117,18 +98,6 @@ export default function ProductsPage() {
       return matchesSearch && matchesCategory;
     });
   }, [products, search, categoryFilter]);
-
-  const stats = useMemo(() => {
-    const inStock = products.filter((p) => p.stock > 10).length;
-    const lowStock = products.filter((p) => p.stock > 0 && p.stock <= 10).length;
-    const outOfStock = products.filter((p) => p.stock === 0).length;
-    return {
-      total: products.length,
-      inStock,
-      lowStock,
-      outOfStock,
-    };
-  }, [products]);
 
   function openAddModal() {
     setEditingId(null);
@@ -215,81 +184,26 @@ export default function ProductsPage() {
     setProducts((prev) => prev.filter((p) => p.id !== id));
   }
 
-  const statCards = [
-    {
-      label: "Total Products",
-      value: stats.total,
-      icon: Package,
-      color: "text-[#6366f1]",
-      bg: "bg-indigo-50",
-    },
-    {
-      label: "In Stock",
-      value: stats.inStock,
-      icon: Package,
-      color: "text-emerald-600",
-      bg: "bg-emerald-50",
-    },
-    {
-      label: "Low Stock",
-      value: stats.lowStock,
-      icon: AlertTriangle,
-      color: "text-amber-600",
-      bg: "bg-amber-50",
-    },
-    {
-      label: "Out of Stock",
-      value: stats.outOfStock,
-      icon: XCircle,
-      color: "text-red-600",
-      bg: "bg-red-50",
-    },
-  ];
-
   return (
     <div className="flex h-full flex-col overflow-auto">
-      <div className="p-6">
+      <div className="p-8">
         {error && (
-          <div className="mb-4 rounded-xl bg-red-50 px-4 py-3 text-sm text-red-600">
+          <div className="mb-4 rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">
             {error}
           </div>
         )}
 
-        {!loading && (
-          <div className="mb-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-            {statCards.map((stat) => (
-              <div key={stat.label} className="card rounded-2xl p-5">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-gray-500">
-                      {stat.label}
-                    </p>
-                    <p className="mt-1 text-3xl font-bold text-gray-900">
-                      {stat.value}
-                    </p>
-                  </div>
-                  <div
-                    className={`flex h-11 w-11 items-center justify-center rounded-xl ${stat.bg}`}
-                  >
-                    <stat.icon className={`h-5 w-5 ${stat.color}`} />
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-
-        <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex flex-1 flex-col gap-3 sm:flex-row sm:items-center">
             <div className="relative flex-1">
-              <Search className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
               <input
                 type="text"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 placeholder="Search products by name..."
                 disabled={loading}
-                className="w-full rounded-xl bg-white py-3 pl-11 pr-4 text-sm text-gray-900 shadow-sm placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#6366f1]/30 disabled:opacity-60"
+                className="w-full rounded-md border border-[#e5e7eb] py-2 pl-10 pr-4 text-sm text-[#111827] placeholder:text-gray-400 focus:border-[#2563eb] focus:outline-none focus:ring-1 focus:ring-[#2563eb] disabled:opacity-60"
               />
             </div>
             <select
@@ -298,7 +212,7 @@ export default function ProductsPage() {
                 setCategoryFilter(e.target.value as Category | "All")
               }
               disabled={loading}
-              className="rounded-xl bg-white px-4 py-3 text-sm text-gray-900 shadow-sm focus:outline-none focus:ring-2 focus:ring-[#6366f1]/30 disabled:opacity-60 sm:w-44"
+              className="rounded-md border border-[#e5e7eb] px-3 py-2 text-sm text-[#111827] focus:border-[#2563eb] focus:outline-none focus:ring-1 focus:ring-[#2563eb] disabled:opacity-60 sm:w-44"
             >
               <option value="All">All Categories</option>
               {CATEGORIES.map((cat) => (
@@ -312,68 +226,66 @@ export default function ProductsPage() {
             type="button"
             onClick={openAddModal}
             disabled={loading}
-            className="flex shrink-0 items-center justify-center gap-2 rounded-xl bg-[#6366f1] px-5 py-3 text-sm font-semibold text-white shadow-md shadow-indigo-500/20 transition-all hover:bg-indigo-500 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60"
+            className="shrink-0 rounded-md bg-[#111827] px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-gray-800 disabled:cursor-not-allowed disabled:opacity-60"
           >
-            <Plus className="h-4 w-4" />
             Add Product
           </button>
         </div>
 
         {loading ? (
           <div className="flex items-center justify-center py-24">
-            <Loader2 className="h-8 w-8 animate-spin text-[#6366f1]" />
+            <Loader2 className="h-6 w-6 animate-spin text-gray-400" />
           </div>
         ) : (
-          <div className="card overflow-hidden rounded-2xl">
+          <div className="overflow-hidden rounded-lg border border-[#e5e7eb] bg-white">
             <table className="w-full text-left text-sm">
               <thead>
-                <tr className="bg-gray-50/80">
-                  <th className="px-6 py-4 font-semibold text-gray-600">
+                <tr className="border-b border-[#e5e7eb]">
+                  <th className="px-6 py-3 text-xs font-medium uppercase tracking-wide text-[#6b7280]">
                     Name
                   </th>
-                  <th className="px-6 py-4 font-semibold text-gray-600">
+                  <th className="px-6 py-3 text-xs font-medium uppercase tracking-wide text-[#6b7280]">
                     Category
                   </th>
-                  <th className="px-6 py-4 font-semibold text-gray-600">
-                    Price (RM)
+                  <th className="px-6 py-3 text-xs font-medium uppercase tracking-wide text-[#6b7280]">
+                    Price
                   </th>
-                  <th className="px-6 py-4 font-semibold text-gray-600">
-                    Stock quantity
+                  <th className="px-6 py-3 text-xs font-medium uppercase tracking-wide text-[#6b7280]">
+                    Stock
                   </th>
-                  <th className="px-6 py-4 font-semibold text-gray-600">
+                  <th className="px-6 py-3 text-xs font-medium uppercase tracking-wide text-[#6b7280]">
                     Status
                   </th>
-                  <th className="px-6 py-4 font-semibold text-gray-600">
+                  <th className="px-6 py-3 text-xs font-medium uppercase tracking-wide text-[#6b7280]">
                     Actions
                   </th>
                 </tr>
               </thead>
-              <tbody>
-                {filteredProducts.map((product, index) => {
+              <tbody className="divide-y divide-[#e5e7eb]">
+                {filteredProducts.map((product) => {
                   const status = getStockStatus(product.stock);
                   return (
                     <tr
                       key={product.id}
-                      className={`transition-colors hover:bg-indigo-50/30 ${
-                        index % 2 === 0 ? "bg-white" : "bg-gray-50/40"
-                      }`}
+                      className="transition-colors hover:bg-gray-50"
                     >
-                      <td className="px-6 py-4 font-semibold text-gray-900">
+                      <td className="px-6 py-4 font-medium text-[#111827]">
                         {product.name}
                       </td>
-                      <td className="px-6 py-4 text-gray-600">
+                      <td className="px-6 py-4 text-[#6b7280]">
                         {product.category}
                       </td>
-                      <td className="px-6 py-4 font-medium text-gray-900">
+                      <td className="px-6 py-4 text-[#111827]">
                         {formatRM(product.price)}
                       </td>
-                      <td className="px-6 py-4 text-gray-600">
+                      <td className="px-6 py-4 text-[#6b7280]">
                         {product.stock}
                       </td>
                       <td className="px-6 py-4">
-                        <span
-                          className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${status.className}`}
-                        >
+                        <span className="inline-flex items-center gap-2 text-xs text-[#6b7280]">
+                          <span
+                            className={`h-1.5 w-1.5 rounded-full ${status.dot}`}
+                          />
                           {status.label}
                         </span>
                       </td>
@@ -382,17 +294,17 @@ export default function ProductsPage() {
                           <button
                             type="button"
                             onClick={() => openEditModal(product)}
-                            className="flex items-center gap-1 rounded-lg bg-gray-100 px-3 py-1.5 text-xs font-semibold text-gray-700 transition-colors hover:bg-gray-200 active:scale-[0.97]"
+                            className="rounded-md border border-[#e5e7eb] px-2.5 py-1 text-xs font-medium text-[#6b7280] transition-colors hover:bg-gray-50 hover:text-[#111827]"
                           >
-                            <Pencil className="h-3.5 w-3.5" />
+                            <Pencil className="mr-1 inline h-3 w-3" />
                             Edit
                           </button>
                           <button
                             type="button"
                             onClick={() => handleDelete(product.id)}
-                            className="flex items-center gap-1 rounded-lg bg-red-50 px-3 py-1.5 text-xs font-semibold text-red-600 transition-colors hover:bg-red-100 active:scale-[0.97]"
+                            className="rounded-md border border-[#e5e7eb] px-2.5 py-1 text-xs font-medium text-red-600 transition-colors hover:bg-red-50"
                           >
-                            <Trash2 className="h-3.5 w-3.5" />
+                            <Trash2 className="mr-1 inline h-3 w-3" />
                             Delete
                           </button>
                         </div>
@@ -404,7 +316,7 @@ export default function ProductsPage() {
             </table>
 
             {filteredProducts.length === 0 && (
-              <p className="py-12 text-center text-sm text-gray-500">
+              <p className="py-12 text-center text-sm text-[#6b7280]">
                 {products.length === 0
                   ? 'No products yet. Click "Add Product" to get started.'
                   : "No products match your filters."}
@@ -415,17 +327,17 @@ export default function ProductsPage() {
       </div>
 
       {modalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <div className="w-full max-w-md rounded-2xl bg-white shadow-2xl">
-            <div className="flex items-center justify-between px-6 py-5">
-              <h3 className="text-lg font-semibold text-slate-900">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+          <div className="w-full max-w-md rounded-lg border border-[#e5e7eb] bg-white shadow-lg">
+            <div className="flex items-center justify-between border-b border-[#e5e7eb] px-6 py-4">
+              <h3 className="text-base font-semibold text-[#111827]">
                 {editingId ? "Edit Product" : "Add Product"}
               </h3>
               <button
                 type="button"
                 onClick={closeModal}
                 disabled={saving}
-                className="rounded-md p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600"
+                className="rounded-md p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
                 aria-label="Close"
               >
                 <X className="h-5 w-5" />
@@ -436,7 +348,7 @@ export default function ProductsPage() {
               <div>
                 <label
                   htmlFor="name"
-                  className="mb-1.5 block text-sm font-medium text-slate-700"
+                  className="mb-1.5 block text-sm font-medium text-[#111827]"
                 >
                   Product name
                 </label>
@@ -450,14 +362,14 @@ export default function ProductsPage() {
                   required
                   disabled={saving}
                   placeholder="e.g. Nasi Lemak"
-                  className="w-full rounded-xl bg-gray-50 px-4 py-3 text-sm text-gray-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#6366f1]/30 disabled:opacity-60"
+                  className="w-full rounded-md border border-[#e5e7eb] px-3 py-2 text-sm text-[#111827] focus:border-[#2563eb] focus:outline-none focus:ring-1 focus:ring-[#2563eb] disabled:opacity-60"
                 />
               </div>
 
               <div>
                 <label
                   htmlFor="category"
-                  className="mb-1.5 block text-sm font-medium text-slate-700"
+                  className="mb-1.5 block text-sm font-medium text-[#111827]"
                 >
                   Category
                 </label>
@@ -471,7 +383,7 @@ export default function ProductsPage() {
                     }))
                   }
                   disabled={saving}
-                  className="w-full rounded-xl bg-gray-50 px-4 py-3 text-sm text-gray-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#6366f1]/30 disabled:opacity-60"
+                  className="w-full rounded-md border border-[#e5e7eb] px-3 py-2 text-sm text-[#111827] focus:border-[#2563eb] focus:outline-none focus:ring-1 focus:ring-[#2563eb] disabled:opacity-60"
                 >
                   {CATEGORIES.map((cat) => (
                     <option key={cat} value={cat}>
@@ -484,7 +396,7 @@ export default function ProductsPage() {
               <div>
                 <label
                   htmlFor="price"
-                  className="mb-1.5 block text-sm font-medium text-slate-700"
+                  className="mb-1.5 block text-sm font-medium text-[#111827]"
                 >
                   Price (RM)
                 </label>
@@ -500,14 +412,14 @@ export default function ProductsPage() {
                   required
                   disabled={saving}
                   placeholder="0.00"
-                  className="w-full rounded-xl bg-gray-50 px-4 py-3 text-sm text-gray-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#6366f1]/30 disabled:opacity-60"
+                  className="w-full rounded-md border border-[#e5e7eb] px-3 py-2 text-sm text-[#111827] focus:border-[#2563eb] focus:outline-none focus:ring-1 focus:ring-[#2563eb] disabled:opacity-60"
                 />
               </div>
 
               <div>
                 <label
                   htmlFor="stock"
-                  className="mb-1.5 block text-sm font-medium text-slate-700"
+                  className="mb-1.5 block text-sm font-medium text-[#111827]"
                 >
                   Stock quantity
                 </label>
@@ -523,7 +435,7 @@ export default function ProductsPage() {
                   required
                   disabled={saving}
                   placeholder="0"
-                  className="w-full rounded-xl bg-gray-50 px-4 py-3 text-sm text-gray-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#6366f1]/30 disabled:opacity-60"
+                  className="w-full rounded-md border border-[#e5e7eb] px-3 py-2 text-sm text-[#111827] focus:border-[#2563eb] focus:outline-none focus:ring-1 focus:ring-[#2563eb] disabled:opacity-60"
                 />
               </div>
 
@@ -532,14 +444,14 @@ export default function ProductsPage() {
                   type="button"
                   onClick={closeModal}
                   disabled={saving}
-                  className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-50 active:scale-[0.98] disabled:opacity-60"
+                  className="rounded-md border border-[#e5e7eb] px-4 py-2 text-sm font-medium text-[#6b7280] transition-colors hover:bg-gray-50 disabled:opacity-60"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={saving}
-                  className="flex items-center gap-2 rounded-xl bg-[#6366f1] px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-indigo-500 active:scale-[0.98] disabled:opacity-60"
+                  className="flex items-center gap-2 rounded-md bg-[#111827] px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-gray-800 disabled:opacity-60"
                 >
                   {saving && <Loader2 className="h-4 w-4 animate-spin" />}
                   {editingId ? "Save Changes" : "Add Product"}

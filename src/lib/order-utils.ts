@@ -1,14 +1,17 @@
+import type { LucideIcon } from "lucide-react";
+import { Banknote, CreditCard, QrCode, Smartphone } from "lucide-react";
+
 export type PaymentMethod = "cash" | "card" | "touch_n_go" | "qr_code";
 
 export const PAYMENT_OPTIONS: {
   id: PaymentMethod;
   label: string;
-  icon: string;
+  Icon: LucideIcon;
 }[] = [
-  { id: "cash", label: "Cash", icon: "💵" },
-  { id: "card", label: "Card", icon: "💳" },
-  { id: "touch_n_go", label: "Touch n Go", icon: "📱" },
-  { id: "qr_code", label: "QR Code", icon: "📲" },
+  { id: "cash", label: "Cash", Icon: Banknote },
+  { id: "card", label: "Card", Icon: CreditCard },
+  { id: "touch_n_go", label: "Touch n Go", Icon: Smartphone },
+  { id: "qr_code", label: "QR Code", Icon: QrCode },
 ];
 
 export function formatRM(amount: number) {
@@ -35,21 +38,6 @@ export function getPaymentLabel(method: string) {
     PAYMENT_OPTIONS.find((p) => p.id === method)?.label ??
     method.replace(/_/g, " ")
   );
-}
-
-export function getPaymentBadgeClass(method: string) {
-  switch (method) {
-    case "cash":
-      return "bg-emerald-500/10 text-emerald-700 ring-1 ring-emerald-500/20";
-    case "card":
-      return "bg-blue-500/10 text-blue-700 ring-1 ring-blue-500/20";
-    case "touch_n_go":
-      return "bg-violet-500/10 text-violet-700 ring-1 ring-violet-500/20";
-    case "qr_code":
-      return "bg-teal-500/10 text-teal-700 ring-1 ring-teal-500/20";
-    default:
-      return "bg-gray-500/10 text-gray-700 ring-1 ring-gray-500/20";
-  }
 }
 
 export function calculateOrderTotals(

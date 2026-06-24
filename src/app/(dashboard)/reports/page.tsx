@@ -1,14 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import {
-  Award,
-  BarChart3,
-  DollarSign,
-  Loader2,
-  ShoppingBag,
-  TrendingUp,
-} from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import type { OrderItemRow, OrderRow } from "@/types/database";
 
@@ -34,7 +27,7 @@ type TopProduct = {
 };
 
 function formatRM(amount: number) {
-  return `RM ${amount.toFixed(2)}`;
+  return `RM${amount.toFixed(2)}`;
 }
 
 function getFilterStartDate(filter: (typeof DATE_FILTERS)[number]) {
@@ -54,13 +47,6 @@ function getFilterStartDate(filter: (typeof DATE_FILTERS)[number]) {
   }
 
   return start;
-}
-
-function getRankDisplay(index: number) {
-  if (index === 0) return "🥇";
-  if (index === 1) return "🥈";
-  if (index === 2) return "🥉";
-  return `${index + 1}`;
 }
 
 function getSalesTitle(filter: (typeof DATE_FILTERS)[number]) {
@@ -178,44 +164,36 @@ export default function ReportsPage() {
     {
       title: getSalesTitle(activeFilter),
       value: formatRM(totalSales),
-      icon: DollarSign,
-      gradient: "from-indigo-500 to-indigo-700",
     },
     {
       title: "Total Transactions",
       value: transactionCount.toString(),
-      icon: ShoppingBag,
-      gradient: "from-teal-500 to-teal-700",
     },
     {
       title: "Average Order Value",
       value: formatRM(averageOrderValue),
-      icon: TrendingUp,
-      gradient: "from-amber-500 to-amber-700",
     },
     {
       title: "Best Selling Item",
       value: bestSellingItem,
-      icon: Award,
-      gradient: "from-rose-500 to-rose-700",
     },
   ];
 
   return (
     <div className="flex h-full flex-col overflow-auto">
-      <div className="p-6">
+      <div className="p-8">
         <div className="mb-6 flex justify-end">
-          <div className="flex rounded-xl bg-white p-1 shadow-sm">
+          <div className="flex rounded-md border border-[#e5e7eb] bg-white p-0.5">
             {DATE_FILTERS.map((filter) => (
               <button
                 key={filter}
                 type="button"
                 onClick={() => setActiveFilter(filter)}
                 disabled={loading}
-                className={`rounded-lg px-4 py-2 text-sm font-medium transition-all active:scale-[0.98] disabled:opacity-60 ${
+                className={`rounded px-3 py-1.5 text-sm font-medium transition-colors disabled:opacity-60 ${
                   activeFilter === filter
-                    ? "bg-[#6366f1] text-white shadow-md"
-                    : "text-gray-600 hover:text-gray-900"
+                    ? "bg-[#111827] text-white"
+                    : "text-[#6b7280] hover:text-[#111827]"
                 }`}
               >
                 {filter}
@@ -225,14 +203,14 @@ export default function ReportsPage() {
         </div>
 
         {error && (
-          <div className="mb-4 rounded-xl bg-red-50 px-4 py-3 text-sm text-red-600">
+          <div className="mb-4 rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">
             {error}
           </div>
         )}
 
         {loading ? (
           <div className="flex items-center justify-center py-24">
-            <Loader2 className="h-8 w-8 animate-spin text-[#6366f1]" />
+            <Loader2 className="h-6 w-6 animate-spin text-gray-400" />
           </div>
         ) : (
           <>
@@ -240,55 +218,41 @@ export default function ReportsPage() {
               {summaryCards.map((card) => (
                 <div
                   key={card.title}
-                  className={`rounded-2xl bg-gradient-to-br ${card.gradient} p-5 text-white shadow-lg transition-transform duration-200 hover:-translate-y-0.5`}
+                  className="rounded-lg border border-[#e5e7eb] bg-white p-6"
                 >
-                  <div className="flex items-start justify-between">
-                    <div>
-                      <p className="text-sm font-medium text-white/80">
-                        {card.title}
-                      </p>
-                      <p className="mt-2 text-2xl font-bold">{card.value}</p>
-                    </div>
-                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white/20">
-                      <card.icon className="h-5 w-5" />
-                    </div>
-                  </div>
+                  <p className="text-2xl font-bold text-[#111827]">
+                    {card.value}
+                  </p>
+                  <p className="mt-1 text-sm text-[#6b7280]">{card.title}</p>
                 </div>
               ))}
             </div>
 
-            <div className="card mt-6 rounded-2xl p-6">
-              <div className="mb-6 flex items-center gap-2">
-                <BarChart3 className="h-5 w-5 text-[#6366f1]" />
-                <div>
-                  <h3 className="font-bold text-gray-900">
-                    Sales — Last 7 Days
-                  </h3>
-                  <p className="text-sm text-gray-500">
-                    Sample daily revenue overview
-                  </p>
-                </div>
-              </div>
+            <div className="mt-8 rounded-lg border border-[#e5e7eb] bg-white p-6">
+              <h3 className="text-base font-semibold text-[#111827]">
+                Sales — Last 7 Days
+              </h3>
+              <p className="mt-0.5 text-sm text-[#6b7280]">
+                Sample daily revenue overview
+              </p>
 
-              <div className="flex h-80 gap-4 pb-2">
+              <div className="mt-8 flex h-64 items-end gap-3">
                 {weeklySales.map((item) => {
                   const heightPercent = (item.amount / maxSales) * 100;
                   return (
                     <div
                       key={item.day}
-                      className="flex h-full flex-1 flex-col items-center"
+                      className="flex h-full flex-1 flex-col items-center justify-end"
                     >
-                      <span className="mb-2 text-xs font-semibold text-gray-600">
-                        RM{item.amount}
-                      </span>
-                      <div className="flex w-full flex-1 items-end">
-                        <div
-                          className="w-full min-h-[12px] rounded-t-xl bg-gradient-to-t from-[#6366f1] to-indigo-400 transition-all hover:from-indigo-600 hover:to-indigo-300"
-                          style={{ height: `${heightPercent}%` }}
-                          title={`${item.day}: RM${item.amount}`}
-                        />
-                      </div>
-                      <span className="mt-3 text-xs font-semibold text-gray-500">
+                      <div
+                        className="w-full rounded-t bg-[#2563eb]"
+                        style={{
+                          height: `${heightPercent}%`,
+                          minHeight: "8px",
+                        }}
+                        title={`${item.day}: RM${item.amount}`}
+                      />
+                      <span className="mt-3 text-xs text-[#6b7280]">
                         {item.day}
                       </span>
                     </div>
@@ -297,72 +261,61 @@ export default function ReportsPage() {
               </div>
             </div>
 
-            <div className="card mt-6 overflow-hidden rounded-2xl">
-              <div className="px-6 py-5">
-                <h3 className="font-bold text-gray-900">Top Products</h3>
-                <p className="text-sm text-gray-500">
+            <div className="mt-8 overflow-hidden rounded-lg border border-[#e5e7eb] bg-white">
+              <div className="border-b border-[#e5e7eb] px-6 py-4">
+                <h3 className="text-base font-semibold text-[#111827]">
+                  Top Products
+                </h3>
+                <p className="mt-0.5 text-sm text-[#6b7280]">
                   Best performers by revenue
                 </p>
               </div>
 
               {topProducts.length === 0 ? (
-                <p className="py-12 text-center text-sm text-gray-500">
+                <p className="py-12 text-center text-sm text-[#6b7280]">
                   No sales data for this period yet.
                 </p>
               ) : (
                 <table className="w-full text-left text-sm">
                   <thead>
-                    <tr className="bg-gray-50/80">
-                      <th className="px-6 py-4 font-semibold text-gray-600">
-                        Product name
+                    <tr className="border-b border-[#e5e7eb]">
+                      <th className="px-6 py-3 text-xs font-medium uppercase tracking-wide text-[#6b7280]">
+                        #
                       </th>
-                      <th className="px-6 py-4 font-semibold text-gray-600">
+                      <th className="px-6 py-3 text-xs font-medium uppercase tracking-wide text-[#6b7280]">
+                        Product
+                      </th>
+                      <th className="px-6 py-3 text-xs font-medium uppercase tracking-wide text-[#6b7280]">
                         Units sold
                       </th>
-                      <th className="px-6 py-4 font-semibold text-gray-600">
-                        Revenue (RM)
+                      <th className="px-6 py-3 text-xs font-medium uppercase tracking-wide text-[#6b7280]">
+                        Revenue
                       </th>
-                      <th className="px-6 py-4 font-semibold text-gray-600">
-                        % of total sales
+                      <th className="px-6 py-3 text-xs font-medium uppercase tracking-wide text-[#6b7280]">
+                        % of total
                       </th>
                     </tr>
                   </thead>
-                  <tbody>
+                  <tbody className="divide-y divide-[#e5e7eb]">
                     {topProducts.map((product, index) => (
                       <tr
                         key={product.name}
-                        className={`transition-colors duration-150 hover:bg-indigo-50/40 ${
-                          index % 2 === 0 ? "bg-white" : "bg-gray-50/40"
-                        }`}
+                        className="transition-colors hover:bg-gray-50"
                       >
-                        <td className="px-6 py-4">
-                          <div className="flex items-center gap-3">
-                            <span className="flex h-8 w-8 items-center justify-center text-lg">
-                              {getRankDisplay(index)}
-                            </span>
-                            <span className="font-semibold text-gray-900">
-                              {product.name}
-                            </span>
-                          </div>
+                        <td className="px-6 py-4 font-mono text-sm text-[#6b7280]">
+                          {index + 1}
                         </td>
-                        <td className="px-6 py-4 text-gray-600">
+                        <td className="px-6 py-4 font-medium text-[#111827]">
+                          {product.name}
+                        </td>
+                        <td className="px-6 py-4 text-[#6b7280]">
                           {product.unitsSold}
                         </td>
-                        <td className="px-6 py-4 font-semibold text-gray-900">
+                        <td className="px-6 py-4 text-[#111827]">
                           {formatRM(product.revenue)}
                         </td>
-                        <td className="px-6 py-4">
-                          <div className="flex items-center gap-3">
-                            <div className="h-2.5 w-28 overflow-hidden rounded-full bg-gray-100">
-                              <div
-                                className="h-full rounded-full bg-[#6366f1]"
-                                style={{ width: `${product.percentOfTotal}%` }}
-                              />
-                            </div>
-                            <span className="font-medium text-gray-600">
-                              {product.percentOfTotal}%
-                            </span>
-                          </div>
+                        <td className="px-6 py-4 text-[#6b7280]">
+                          {product.percentOfTotal}%
                         </td>
                       </tr>
                     ))}

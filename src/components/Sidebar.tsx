@@ -9,7 +9,6 @@ import {
   LogOut,
   Package,
   Receipt,
-  Store,
 } from "lucide-react";
 import { getCartCount, logout } from "@/lib/auth";
 
@@ -46,18 +45,15 @@ export default function Sidebar() {
   }
 
   return (
-    <aside className="flex h-full w-64 shrink-0 flex-col bg-[#0a0a0a] text-white">
+    <aside className="flex h-full w-56 shrink-0 flex-col border-r border-[#e5e7eb] bg-[#111827]">
       <div className="flex items-center gap-3 px-5 py-6">
-        <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-[#6366f1]">
-          <Store className="h-5 w-5 text-white" />
+        <div className="flex h-8 w-8 items-center justify-center rounded-md bg-white/10 text-sm font-semibold text-white">
+          P
         </div>
-        <div>
-          <h1 className="text-base font-bold tracking-tight">POS System</h1>
-          <p className="text-xs text-gray-500">F&B & Retail</p>
-        </div>
+        <span className="text-sm font-semibold text-white">POS System</span>
       </div>
 
-      <nav className="flex-1 space-y-1 px-3 py-2">
+      <nav className="flex-1 px-3">
         {navItems.map(({ href, label, icon: Icon }) => {
           const isActive =
             pathname === href || pathname.startsWith(`${href}/`);
@@ -67,16 +63,16 @@ export default function Sidebar() {
             <Link
               key={href}
               href={href}
-              className={`relative flex items-center gap-3 rounded-full px-4 py-2.5 text-sm font-medium transition-all duration-200 ${
+              className={`relative mb-0.5 flex items-center gap-3 border-l-2 py-2.5 pl-3 pr-2 text-sm transition-colors ${
                 isActive
-                  ? "bg-[#6366f1] text-white shadow-lg shadow-indigo-500/20"
-                  : "text-gray-400 hover:bg-white/5 hover:text-white"
+                  ? "border-[#2563eb] text-white"
+                  : "border-transparent text-gray-400 hover:text-gray-200"
               }`}
             >
-              <span className="relative shrink-0">
-                <Icon className="h-5 w-5" />
+              <span className="relative">
+                <Icon className="h-4 w-4" strokeWidth={1.75} />
                 {showCartBadge && (
-                  <span className="absolute -right-1.5 -top-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white">
+                  <span className="absolute -right-1 -top-1 flex h-3.5 w-3.5 items-center justify-center rounded-full bg-[#2563eb] text-[9px] font-medium text-white">
                     {cartCount > 9 ? "9+" : cartCount}
                   </span>
                 )}
@@ -87,26 +83,15 @@ export default function Sidebar() {
         })}
       </nav>
 
-      <div className="border-t border-white/10 p-4">
-        <div className="mb-3 flex items-center gap-3 px-2">
-          <div className="relative">
-            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#6366f1] text-sm font-bold text-white">
-              AD
-            </div>
-            <span className="absolute bottom-0 right-0 h-3 w-3 rounded-full border-2 border-[#0a0a0a] bg-emerald-400" />
-          </div>
-          <div className="min-w-0">
-            <p className="truncate text-sm font-semibold text-white">Admin</p>
-            <p className="text-xs text-gray-500">Manager</p>
-          </div>
-        </div>
-
+      <div className="border-t border-white/10 px-5 py-4">
+        <p className="text-sm text-gray-300">Admin</p>
+        <p className="text-xs text-gray-500">Manager</p>
         <button
           type="button"
           onClick={handleLogout}
-          className="flex w-full items-center gap-2 px-2 py-1.5 text-sm font-medium text-red-400 transition-colors hover:text-red-300"
+          className="mt-3 flex items-center gap-2 text-xs text-gray-500 transition-colors hover:text-gray-300"
         >
-          <LogOut className="h-4 w-4" />
+          <LogOut className="h-3.5 w-3.5" />
           Logout
         </button>
       </div>
