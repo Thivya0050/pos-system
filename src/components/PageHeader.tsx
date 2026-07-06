@@ -4,6 +4,7 @@ import { usePathname } from "next/navigation";
 import { ChevronRight } from "lucide-react";
 
 const pageTitles: Record<string, string> = {
+  "/dashboard": "Overview",
   "/pos": "Cashier",
   "/products": "Products",
   "/orders": "Orders",

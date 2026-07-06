@@ -33,6 +33,14 @@ export function formatOrderDateTime(iso: string) {
   });
 }
 
+export function formatOrderTime(iso: string) {
+  return new Date(iso).toLocaleString("en-MY", {
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: true,
+  });
+}
+
 export function getPaymentLabel(method: string) {
   return (
     PAYMENT_OPTIONS.find((p) => p.id === method)?.label ??

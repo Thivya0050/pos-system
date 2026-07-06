@@ -17,7 +17,7 @@ export default function LoginPage() {
 
   useEffect(() => {
     if (isLoggedIn()) {
-      router.replace("/pos");
+      router.replace("/dashboard");
     }
   }, [router]);
 
@@ -29,7 +29,7 @@ export default function LoginPage() {
     setTimeout(() => {
       if (email === VALID_EMAIL && password === VALID_PASSWORD) {
         setLoggedIn();
-        router.push("/pos");
+        router.push("/dashboard");
       } else {
         setError("Invalid email or password");
         setLoading(false);

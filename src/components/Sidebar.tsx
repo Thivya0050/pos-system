@@ -5,6 +5,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import {
   BarChart3,
+  Home,
   LayoutGrid,
   LogOut,
   Package,
@@ -13,6 +14,7 @@ import {
 import { getCartCount, logout } from "@/lib/auth";
 
 const navItems = [
+  { href: "/dashboard", label: "Dashboard", icon: Home },
   { href: "/pos", label: "POS", icon: LayoutGrid },
   { href: "/products", label: "Products", icon: Package },
   { href: "/orders", label: "Orders", icon: Receipt },
