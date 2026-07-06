@@ -268,16 +268,16 @@ export default function POSPage() {
       )}
 
       <div className="flex min-h-0 flex-1 overflow-hidden">
-        <div className="flex w-[60%] min-w-0 flex-col border-r border-[#e5e7eb] p-8">
+        <div className="flex w-[60%] min-w-0 flex-col border-r border-[#f0f0f0] p-8">
           <div className="relative mb-6 shrink-0">
-            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+            <Search className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-[#9ca3af]" />
             <input
               type="text"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Search products..."
               disabled={loading}
-              className="w-full rounded-md border border-[#e5e7eb] py-2 pl-10 pr-4 text-sm text-[#111827] placeholder:text-gray-400 focus:border-[#2563eb] focus:outline-none focus:ring-1 focus:ring-[#2563eb] disabled:opacity-60"
+              className="input-field h-11 pl-11 disabled:opacity-60"
             />
           </div>
 
@@ -288,10 +288,10 @@ export default function POSPage() {
                 type="button"
                 onClick={() => setCategoryFilter(cat)}
                 disabled={loading}
-                className={`rounded-md px-3 py-1.5 text-sm font-medium transition-colors disabled:opacity-60 ${
+                className={`rounded-lg px-4 py-2 text-sm font-medium transition-colors disabled:opacity-60 ${
                   categoryFilter === cat
-                    ? "bg-[#111827] text-white"
-                    : "border border-[#e5e7eb] text-[#6b7280] hover:text-[#111827]"
+                    ? "bg-black text-white"
+                    : "border border-[#f0f0f0] text-[#6b7280] hover:border-black hover:text-black"
                 }`}
               >
                 {cat}
@@ -312,15 +312,15 @@ export default function POSPage() {
                       key={product.id}
                       type="button"
                       onClick={() => addToCart(product)}
-                      className="flex flex-col rounded-lg border border-[#e5e7eb] bg-white p-4 text-left transition-shadow hover:shadow-sm"
+                      className="card flex min-h-[100px] flex-col p-4 text-left transition-all hover:border-black hover:shadow-md"
                     >
-                      <span className="text-sm font-semibold text-[#111827]">
+                      <span className="text-[15px] font-semibold text-[#0f0f0f]">
                         {product.name}
                       </span>
-                      <span className="mt-1 text-sm font-medium text-[#111827]">
+                      <span className="mt-2 text-lg font-bold text-black">
                         {formatRM(product.price)}
                       </span>
-                      <span className="mt-2 text-xs text-[#6b7280]">
+                      <span className="mt-auto pt-2 text-[11px] font-medium uppercase tracking-wide text-[#9ca3af]">
                         {product.category}
                       </span>
                     </button>
@@ -340,12 +340,13 @@ export default function POSPage() {
         </div>
 
         <div className="flex w-[40%] min-w-0 flex-col bg-white">
-          <div className="flex items-center justify-between border-b border-[#e5e7eb] px-6 py-4">
+          <div className="flex items-center justify-between border-b border-[#f0f0f0] px-6 py-4">
             <div className="flex items-center gap-2">
-              <ShoppingCart className="h-4 w-4 text-[#6b7280]" />
-              <h3 className="text-base font-semibold text-[#111827]">Cart</h3>
+              <h3 className="text-base font-semibold text-[#0f0f0f]">
+                Order Summary
+              </h3>
               {cart.length > 0 && (
-                <span className="text-xs text-[#6b7280]">
+                <span className="text-xs text-[#9ca3af]">
                   ({cart.reduce((n, i) => n + i.quantity, 0)} items)
                 </span>
               )}
@@ -355,7 +356,7 @@ export default function POSPage() {
                 type="button"
                 onClick={clearCart}
                 disabled={isBusy}
-                className="text-xs font-medium text-[#6b7280] transition-colors hover:text-red-600 disabled:opacity-60"
+                className="text-xs font-medium text-[#9ca3af] transition-colors hover:text-red-600 disabled:opacity-60"
               >
                 Clear
               </button>
@@ -363,12 +364,12 @@ export default function POSPage() {
           </div>
 
           {cart.length > 0 && (
-            <div className="border-b border-[#e5e7eb] px-6 py-3">
+            <div className="border-b border-[#f0f0f0] px-6 py-3">
               <button
                 type="button"
                 onClick={() => setDiscountModalOpen(true)}
                 disabled={isBusy}
-                className="flex w-full items-center justify-center gap-2 rounded-md border border-[#e5e7eb] py-2 text-sm font-medium text-[#6b7280] transition-colors hover:bg-gray-50 disabled:opacity-60"
+                className="flex w-full items-center justify-center gap-2 rounded-lg border border-[#f0f0f0] py-2 text-sm font-medium text-[#6b7280] transition-colors hover:bg-[#fafafa] disabled:opacity-60"
               >
                 <Tag className="h-4 w-4" />
                 Add Discount
@@ -379,27 +380,22 @@ export default function POSPage() {
           <div className="min-h-0 flex-1 overflow-y-auto px-6">
             {cart.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-20 text-center">
-                <ShoppingCart className="mb-3 h-8 w-8 text-gray-300" />
+                <ShoppingCart className="mb-3 h-8 w-8 text-[#d1d5db]" />
                 <p className="text-sm text-[#6b7280]">
                   Cart is empty. Tap a product to add it.
                 </p>
               </div>
             ) : (
-              <ul className="divide-y divide-[#e5e7eb]">
+              <ul className="divide-y divide-[#f0f0f0]">
                 {cart.map((item) => (
                   <li key={item.id} className="py-4">
                     <div className="flex items-start justify-between gap-2">
-                      <div>
-                        <p className="font-medium text-[#111827]">{item.name}</p>
-                        <p className="mt-0.5 text-xs text-[#6b7280]">
-                          {formatRM(item.price)} each
-                        </p>
-                      </div>
+                      <p className="font-semibold text-[#0f0f0f]">{item.name}</p>
                       <button
                         type="button"
                         onClick={() => removeFromCart(item.id)}
                         disabled={isBusy}
-                        className="text-gray-400 transition-colors hover:text-red-600 disabled:opacity-60"
+                        className="text-[#d1d5db] transition-colors hover:text-red-600 disabled:opacity-60"
                         aria-label="Remove item"
                       >
                         <Trash2 className="h-4 w-4" />
@@ -411,23 +407,23 @@ export default function POSPage() {
                           type="button"
                           onClick={() => updateQuantity(item.id, -1)}
                           disabled={isBusy}
-                          className="flex h-7 w-7 items-center justify-center rounded-md border border-[#e5e7eb] text-[#6b7280] transition-colors hover:bg-gray-50 disabled:opacity-60"
+                          className="flex h-7 w-7 items-center justify-center rounded-md border border-[#f0f0f0] text-[#9ca3af] transition-colors hover:bg-[#fafafa] disabled:opacity-60"
                         >
                           <Minus className="h-3 w-3" />
                         </button>
-                        <span className="w-6 text-center text-sm font-medium text-[#111827]">
+                        <span className="w-6 text-center text-sm text-[#6b7280]">
                           {item.quantity}
                         </span>
                         <button
                           type="button"
                           onClick={() => updateQuantity(item.id, 1)}
                           disabled={isBusy}
-                          className="flex h-7 w-7 items-center justify-center rounded-md border border-[#e5e7eb] text-[#6b7280] transition-colors hover:bg-gray-50 disabled:opacity-60"
+                          className="flex h-7 w-7 items-center justify-center rounded-md border border-[#f0f0f0] text-[#9ca3af] transition-colors hover:bg-[#fafafa] disabled:opacity-60"
                         >
                           <Plus className="h-3 w-3" />
                         </button>
                       </div>
-                      <span className="text-sm font-medium text-[#111827]">
+                      <span className="text-sm font-semibold text-[#0f0f0f]">
                         {formatRM(item.price * item.quantity)}
                       </span>
                     </div>
@@ -437,18 +433,18 @@ export default function POSPage() {
             )}
           </div>
 
-          <div className="shrink-0 border-t border-[#e5e7eb] px-6 py-5">
+          <div className="shrink-0 border-t border-[#f0f0f0] bg-[#fafafa] px-6 py-5">
             <div className="space-y-2 text-sm">
               <div className="flex justify-between text-[#6b7280]">
                 <span>Subtotal</span>
-                <span className="text-[#111827]">{formatRM(totals.itemsTotal)}</span>
+                <span className="text-[#0f0f0f]">{formatRM(totals.itemsTotal)}</span>
               </div>
               {totals.discount > 0 && (
                 <div className="flex justify-between text-[#6b7280]">
                   <button
                     type="button"
                     onClick={removeDiscount}
-                    className="hover:text-[#111827] hover:underline"
+                    className="hover:text-[#0f0f0f] hover:underline"
                   >
                     Discount
                   </button>
@@ -457,9 +453,9 @@ export default function POSPage() {
               )}
               <div className="flex justify-between text-[#6b7280]">
                 <span>Tax (8%)</span>
-                <span className="text-[#111827]">{formatRM(totals.tax)}</span>
+                <span className="text-[#0f0f0f]">{formatRM(totals.tax)}</span>
               </div>
-              <div className="flex justify-between border-t border-[#e5e7eb] pt-3 text-base font-semibold text-[#111827]">
+              <div className="flex justify-between border-t border-[#f0f0f0] pt-3 text-base font-semibold text-[#0f0f0f]">
                 <span>Total</span>
                 <span>{formatRM(totals.total)}</span>
               </div>
@@ -469,9 +465,9 @@ export default function POSPage() {
               type="button"
               disabled={cart.length === 0 || isBusy}
               onClick={openChargeModal}
-              className="mt-5 flex w-full items-center justify-center rounded-md bg-[#111827] py-3 text-sm font-medium text-white transition-colors hover:bg-gray-800 disabled:cursor-not-allowed disabled:opacity-50"
+              className="btn-primary mt-5 flex h-12 w-full items-center justify-center text-base"
             >
-              Charge {formatRM(totals.total)}
+              Place Order {formatRM(totals.total)}
             </button>
           </div>
         </div>
@@ -480,8 +476,8 @@ export default function POSPage() {
       {/* Payment modal */}
       {paymentModalOpen && (
         <div className="no-print fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-          <div className="w-full max-w-lg rounded-lg border border-[#e5e7eb] bg-white shadow-lg">
-            <div className="flex items-center justify-between border-b border-[#e5e7eb] px-6 py-4">
+          <div className="w-full max-w-lg card">
+            <div className="flex items-center justify-between border-b border-[#f0f0f0] px-6 py-4">
               <h3 className="text-base font-semibold text-[#111827]">
                 Select Payment Method
               </h3>
@@ -526,12 +522,12 @@ export default function POSPage() {
               ))}
             </div>
 
-            <div className="border-t border-[#e5e7eb] px-6 py-4">
+            <div className="border-t border-[#f0f0f0] px-6 py-4">
               <button
                 type="button"
                 onClick={confirmPayment}
                 disabled={processing}
-                className="flex w-full items-center justify-center gap-2 rounded-md bg-[#111827] py-2.5 text-sm font-medium text-white transition-colors hover:bg-gray-800 disabled:opacity-60"
+                className="btn-primary flex w-full items-center justify-center gap-2 py-2.5 text-sm"
               >
                 {processing ? (
                   <>
@@ -550,8 +546,8 @@ export default function POSPage() {
       {/* Discount modal */}
       {discountModalOpen && (
         <div className="no-print fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-          <div className="w-full max-w-sm rounded-lg border border-[#e5e7eb] bg-white shadow-lg">
-            <div className="flex items-center justify-between border-b border-[#e5e7eb] px-6 py-4">
+          <div className="w-full max-w-sm card">
+            <div className="flex items-center justify-between border-b border-[#f0f0f0] px-6 py-4">
               <h3 className="text-base font-semibold text-[#111827]">
                 Add Discount
               </h3>
@@ -566,13 +562,13 @@ export default function POSPage() {
             </div>
 
             <div className="space-y-4 p-6">
-              <div className="flex rounded-md border border-[#e5e7eb] p-0.5">
+              <div className="flex rounded-lg border border-[#f0f0f0] p-0.5">
                 <button
                   type="button"
                   onClick={() => setDiscountType("percentage")}
-                  className={`flex-1 rounded py-1.5 text-sm font-medium transition-colors ${
+                  className={`flex-1 rounded-md py-1.5 text-sm font-medium transition-colors ${
                     discountType === "percentage"
-                      ? "bg-[#111827] text-white"
+                      ? "bg-black text-white"
                       : "text-[#6b7280]"
                   }`}
                 >
@@ -581,9 +577,9 @@ export default function POSPage() {
                 <button
                   type="button"
                   onClick={() => setDiscountType("fixed")}
-                  className={`flex-1 rounded py-1.5 text-sm font-medium transition-colors ${
+                  className={`flex-1 rounded-md py-1.5 text-sm font-medium transition-colors ${
                     discountType === "fixed"
-                      ? "bg-[#111827] text-white"
+                      ? "bg-black text-white"
                       : "text-[#6b7280]"
                   }`}
                 >
@@ -601,13 +597,13 @@ export default function POSPage() {
                 placeholder={
                   discountType === "percentage" ? "e.g. 10" : "e.g. 5.00"
                 }
-                className="w-full rounded-md border border-[#e5e7eb] px-3 py-2 text-sm focus:border-[#2563eb] focus:outline-none focus:ring-1 focus:ring-[#2563eb]"
+                className="input-field"
               />
 
               <button
                 type="button"
                 onClick={applyDiscount}
-                className="w-full rounded-md bg-[#111827] py-2.5 text-sm font-medium text-white hover:bg-gray-800"
+                className="btn-primary w-full py-2.5 text-sm"
               >
                 Apply
               </button>
@@ -619,7 +615,7 @@ export default function POSPage() {
       {/* Receipt modal */}
       {receipt && (
         <div className="no-print fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-          <div className="w-full max-w-sm rounded-lg border border-[#e5e7eb] bg-white shadow-lg">
+          <div className="w-full max-w-sm card">
             <div className="receipt-print p-6 text-[#111827]">
               <div className="text-center">
                 <h3 className="text-lg font-semibold">POS System</h3>
@@ -692,7 +688,7 @@ export default function POSPage() {
               <button
                 type="button"
                 onClick={handleReceiptDone}
-                className="flex-1 rounded-md bg-[#111827] py-2.5 text-sm font-medium text-white hover:bg-gray-800"
+                className="btn-primary flex-1 py-2.5 text-sm"
               >
                 Done
               </button>

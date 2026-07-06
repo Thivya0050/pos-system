@@ -7,7 +7,6 @@ import {
   BarChart3,
   Home,
   LayoutGrid,
-  LogOut,
   Package,
   Receipt,
 } from "lucide-react";
@@ -47,10 +46,10 @@ export default function Sidebar() {
   }
 
   return (
-    <aside className="flex h-full w-56 shrink-0 flex-col border-r border-[#e5e7eb] bg-[#111827]">
+    <aside className="flex h-full w-[220px] shrink-0 flex-col bg-[#0f0f0f]">
       <div className="flex items-center gap-3 px-5 py-6">
-        <div className="flex h-8 w-8 items-center justify-center rounded-md bg-white/10 text-sm font-semibold text-white">
-          P
+        <div className="flex h-8 w-8 items-center justify-center rounded-md bg-white text-xs font-semibold text-[#0f0f0f]">
+          PS
         </div>
         <span className="text-sm font-semibold text-white">POS System</span>
       </div>
@@ -67,14 +66,14 @@ export default function Sidebar() {
               href={href}
               className={`relative mb-0.5 flex items-center gap-3 border-l-2 py-2.5 pl-3 pr-2 text-sm transition-colors ${
                 isActive
-                  ? "border-[#2563eb] text-white"
-                  : "border-transparent text-gray-400 hover:text-gray-200"
+                  ? "border-white text-white"
+                  : "border-transparent text-[#9ca3af] hover:text-white"
               }`}
             >
               <span className="relative">
                 <Icon className="h-4 w-4" strokeWidth={1.75} />
                 {showCartBadge && (
-                  <span className="absolute -right-1 -top-1 flex h-3.5 w-3.5 items-center justify-center rounded-full bg-[#2563eb] text-[9px] font-medium text-white">
+                  <span className="absolute -right-1 -top-1 flex h-3.5 w-3.5 items-center justify-center rounded-full bg-white text-[9px] font-medium text-[#0f0f0f]">
                     {cartCount > 9 ? "9+" : cartCount}
                   </span>
                 )}
@@ -86,14 +85,20 @@ export default function Sidebar() {
       </nav>
 
       <div className="border-t border-white/10 px-5 py-4">
-        <p className="text-sm text-gray-300">Admin</p>
-        <p className="text-xs text-gray-500">Manager</p>
+        <div className="flex items-center gap-3">
+          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[#262626] text-xs font-medium text-white">
+            AD
+          </div>
+          <div>
+            <p className="text-[13px] text-white">Admin</p>
+            <p className="text-xs text-[#9ca3af]">Manager</p>
+          </div>
+        </div>
         <button
           type="button"
           onClick={handleLogout}
-          className="mt-3 flex items-center gap-2 text-xs text-gray-500 transition-colors hover:text-gray-300"
+          className="mt-4 text-xs text-[#9ca3af] transition-colors hover:text-white"
         >
-          <LogOut className="h-3.5 w-3.5" />
           Logout
         </button>
       </div>

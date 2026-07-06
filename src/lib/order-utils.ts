@@ -48,6 +48,21 @@ export function getPaymentLabel(method: string) {
   );
 }
 
+export function getPaymentDotClass(method: string) {
+  switch (method) {
+    case "cash":
+      return "bg-emerald-500";
+    case "card":
+      return "bg-blue-500";
+    case "touch_n_go":
+      return "bg-orange-500";
+    case "qr_code":
+      return "bg-purple-500";
+    default:
+      return "bg-gray-400";
+  }
+}
+
 export function calculateOrderTotals(
   itemsTotal: number,
   discountAmount: number

@@ -38,78 +38,77 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gray-50 px-4">
-      <div className="w-full max-w-sm">
-        <div className="rounded-lg border border-[#e5e7eb] bg-white p-8 shadow-sm">
-          <div className="mb-8 text-center">
-            <div className="mx-auto mb-4 flex h-10 w-10 items-center justify-center rounded-md bg-[#111827] text-sm font-semibold text-white">
-              P
+    <div className="flex min-h-screen items-center justify-center bg-[#f5f5f5] px-4">
+      <div className="card w-full max-w-[400px] p-6">
+        <div className="mb-8">
+          <h1 className="text-2xl font-bold text-[#0f0f0f]">POS System</h1>
+          <p className="mt-1 text-sm text-[#6b7280]">Sign in to continue</p>
+        </div>
+
+        <form onSubmit={handleSubmit} className="space-y-4">
+          {error && (
+            <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-600">
+              {error}
             </div>
-            <h1 className="text-xl font-semibold text-[#111827]">POS System</h1>
-            <p className="mt-1 text-sm text-gray-500">Sign in to continue</p>
+          )}
+
+          <div>
+            <label
+              htmlFor="email"
+              className="mb-1.5 block text-sm font-medium text-[#0f0f0f]"
+            >
+              Email
+            </label>
+            <input
+              id="email"
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="admin@pos.com"
+              required
+              disabled={loading}
+              className="input-field disabled:opacity-60"
+            />
           </div>
 
-          <form onSubmit={handleSubmit} className="space-y-4">
-            {error && (
-              <div className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-600">
-                {error}
-              </div>
-            )}
-
-            <div>
-              <label
-                htmlFor="email"
-                className="mb-1.5 block text-sm font-medium text-[#111827]"
-              >
-                Email
-              </label>
-              <input
-                id="email"
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="admin@pos.com"
-                required
-                disabled={loading}
-                className="w-full rounded-md border border-[#e5e7eb] px-3 py-2 text-sm text-[#111827] placeholder:text-gray-400 focus:border-[#2563eb] focus:outline-none focus:ring-1 focus:ring-[#2563eb] disabled:opacity-60"
-              />
-            </div>
-
-            <div>
-              <label
-                htmlFor="password"
-                className="mb-1.5 block text-sm font-medium text-[#111827]"
-              >
-                Password
-              </label>
-              <input
-                id="password"
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="••••••••"
-                required
-                disabled={loading}
-                className="w-full rounded-md border border-[#e5e7eb] px-3 py-2 text-sm text-[#111827] placeholder:text-gray-400 focus:border-[#2563eb] focus:outline-none focus:ring-1 focus:ring-[#2563eb] disabled:opacity-60"
-              />
-            </div>
-
-            <button
-              type="submit"
-              disabled={loading}
-              className="flex w-full items-center justify-center gap-2 rounded-md bg-[#111827] px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-gray-800 disabled:cursor-not-allowed disabled:opacity-70"
+          <div>
+            <label
+              htmlFor="password"
+              className="mb-1.5 block text-sm font-medium text-[#0f0f0f]"
             >
-              {loading ? (
-                <>
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                  Signing in...
-                </>
-              ) : (
-                "Sign in"
-              )}
-            </button>
-          </form>
-        </div>
+              Password
+            </label>
+            <input
+              id="password"
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="Enter password"
+              required
+              disabled={loading}
+              className="input-field disabled:opacity-60"
+            />
+          </div>
+
+          <button
+            type="submit"
+            disabled={loading}
+            className="btn-primary flex w-full items-center justify-center gap-2 px-4 py-2.5 text-sm"
+          >
+            {loading ? (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Signing in...
+              </>
+            ) : (
+              "Sign In"
+            )}
+          </button>
+
+          <p className="text-center text-xs text-[#9ca3af]">
+            Demo: admin@pos.com / admin123
+          </p>
+        </form>
       </div>
     </div>
   );

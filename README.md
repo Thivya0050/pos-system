@@ -1,10 +1,10 @@
-# 🛒 POS System — Point of Sale for F&B & Retail
+# POS System — Point of Sale for F&B & Retail
 
 A modern, full-featured Point of Sale system built for food & beverage and retail businesses. Manage products, process sales at the cashier, track orders, apply discounts, accept multiple payment methods, print receipts, and view real-time sales analytics — all in one clean dashboard.
 
 ---
 
-## 🌐 Live Demo
+## Live Demo
 
 [![Live Demo](https://img.shields.io/badge/Live%20Demo-pos--system--my.netlify.app-6366f1?style=for-the-badge&logo=netlify&logoColor=white)](https://pos-system-my.netlify.app)
 
@@ -17,7 +17,7 @@ A modern, full-featured Point of Sale system built for food & beverage and retai
 
 ---
 
-## 📸 Screenshots
+## Screenshots
 
 ![POS Cashier Screen](./public/screenshot-pos.png)
 
@@ -25,21 +25,21 @@ A modern, full-featured Point of Sale system built for food & beverage and retai
 
 ---
 
-## ✨ Features
+## Features
 
-- 🔐 Secure login with role-based access
-- 🛒 Cashier screen with product grid and cart
-- 📦 Product management with stock tracking
-- 📊 Sales reports and analytics dashboard
-- 🧾 Printable receipts after every order
-- 💳 Multiple payment methods (Cash, Card, TnG, QR)
-- 🏷️ Discount support (% or fixed amount)
-- 📋 Full order history with expandable details
-- 🔍 Search and filter across all pages
+- Secure login with role-based access
+- Cashier screen with product grid and cart
+- Product management with stock tracking
+- Sales reports and analytics dashboard
+- Printable receipts after every order
+- Multiple payment methods (Cash, Card, TnG, QR)
+- Discount support (% or fixed amount)
+- Full order history with expandable details
+- Search and filter across all pages
 
 ---
 
-## 🛠️ Tech Stack
+## Tech Stack
 
 ![Next.js 14](https://img.shields.io/badge/Next.js%2014-000000?style=flat-square&logo=next.js&logoColor=white)
 ![TypeScript](https://img.shields.io/badge/TypeScript-3178C6?style=flat-square&logo=typescript&logoColor=white)
@@ -49,7 +49,7 @@ A modern, full-featured Point of Sale system built for food & beverage and retai
 
 ---
 
-## 🚀 Getting Started
+## Getting Started
 
 ### Prerequisites
 
@@ -71,7 +71,7 @@ Open [http://localhost:3000](http://localhost:3000) in your browser.
 
 ---
 
-## 🗄️ Database Setup
+## Database Setup
 
 Run the following SQL in your **Supabase SQL Editor** to create the required tables:
 
@@ -120,7 +120,7 @@ CREATE POLICY "Allow all on order_items" ON order_items FOR ALL USING (true);
 
 ---
 
-## 🔑 Environment Variables
+## Environment Variables
 
 Create a `.env.local` file in the project root:
 
@@ -136,4 +136,4 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
 
 ---
 
-Built with ❤️ by Thivya
+Built with care by Thivya

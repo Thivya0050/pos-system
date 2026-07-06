@@ -164,18 +164,22 @@ export default function ReportsPage() {
     {
       title: getSalesTitle(activeFilter),
       value: formatRM(totalSales),
+      topBorder: "border-t-blue-500",
     },
     {
       title: "Total Transactions",
       value: transactionCount.toString(),
+      topBorder: "border-t-emerald-500",
     },
     {
       title: "Average Order Value",
       value: formatRM(averageOrderValue),
+      topBorder: "border-t-violet-500",
     },
     {
       title: "Best Selling Item",
       value: bestSellingItem,
+      topBorder: "border-t-orange-500",
     },
   ];
 
@@ -183,17 +187,17 @@ export default function ReportsPage() {
     <div className="flex h-full flex-col overflow-auto">
       <div className="p-8">
         <div className="mb-6 flex justify-end">
-          <div className="flex rounded-md border border-[#e5e7eb] bg-white p-0.5">
+          <div className="card flex p-0.5">
             {DATE_FILTERS.map((filter) => (
               <button
                 key={filter}
                 type="button"
                 onClick={() => setActiveFilter(filter)}
                 disabled={loading}
-                className={`rounded px-3 py-1.5 text-sm font-medium transition-colors disabled:opacity-60 ${
+                className={`rounded-lg px-3 py-1.5 text-sm font-medium transition-colors disabled:opacity-60 ${
                   activeFilter === filter
-                    ? "bg-[#111827] text-white"
-                    : "text-[#6b7280] hover:text-[#111827]"
+                    ? "bg-black text-white"
+                    : "text-[#6b7280] hover:text-black"
                 }`}
               >
                 {filter}
@@ -203,7 +207,7 @@ export default function ReportsPage() {
         </div>
 
         {error && (
-          <div className="mb-4 rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">
+          <div className="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">
             {error}
           </div>
         )}
@@ -214,56 +218,69 @@ export default function ReportsPage() {
           </div>
         ) : (
           <>
-            <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+            <div className="grid gap-4 sm:grid-cols-2">
               {summaryCards.map((card) => (
                 <div
                   key={card.title}
-                  className="rounded-lg border border-[#e5e7eb] bg-white p-6"
+                  className={`card border-t-[3px] p-6 ${card.topBorder}`}
                 >
-                  <p className="text-2xl font-bold text-[#111827]">
+                  <p className="text-[32px] font-bold leading-none text-[#0f0f0f]">
                     {card.value}
                   </p>
-                  <p className="mt-1 text-sm text-[#6b7280]">{card.title}</p>
+                  <p className="mt-2 text-[13px] text-[#6b7280]">
+                    {card.title}
+                  </p>
                 </div>
               ))}
             </div>
 
-            <div className="mt-8 rounded-lg border border-[#e5e7eb] bg-white p-6">
-              <h3 className="text-base font-semibold text-[#111827]">
+            <div className="card mt-8 p-6">
+              <h3 className="text-base font-semibold text-[#0f0f0f]">
                 Sales — Last 7 Days
               </h3>
               <p className="mt-0.5 text-sm text-[#6b7280]">
                 Sample daily revenue overview
               </p>
 
-              <div className="mt-8 flex h-64 items-end gap-3">
-                {weeklySales.map((item) => {
-                  const heightPercent = (item.amount / maxSales) * 100;
-                  return (
+              <div className="relative mt-8 h-[300px]">
+                <div className="absolute inset-0 flex flex-col justify-between">
+                  {[0, 1, 2, 3, 4].map((line) => (
                     <div
-                      key={item.day}
-                      className="flex h-full flex-1 flex-col items-center justify-end"
-                    >
+                      key={line}
+                      className="border-t border-[#f0f0f0]"
+                    />
+                  ))}
+                </div>
+                <div className="relative flex h-full items-end gap-3 px-1">
+                  {weeklySales.map((item) => {
+                    const heightPercent = (item.amount / maxSales) * 100;
+                    return (
                       <div
-                        className="w-full rounded-t bg-[#2563eb]"
-                        style={{
-                          height: `${heightPercent}%`,
-                          minHeight: "8px",
-                        }}
-                        title={`${item.day}: RM${item.amount}`}
-                      />
-                      <span className="mt-3 text-xs text-[#6b7280]">
-                        {item.day}
-                      </span>
-                    </div>
-                  );
-                })}
+                        key={item.day}
+                        className="flex h-full flex-1 flex-col items-center justify-end"
+                      >
+                        <div
+                          className="w-full rounded-t bg-black"
+                          style={{
+                            height: `${heightPercent}%`,
+                            minHeight: "8px",
+                            borderRadius: "4px 4px 0 0",
+                          }}
+                          title={`${item.day}: RM${item.amount}`}
+                        />
+                        <span className="mt-3 text-xs text-[#6b7280]">
+                          {item.day}
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
               </div>
             </div>
 
-            <div className="mt-8 overflow-hidden rounded-lg border border-[#e5e7eb] bg-white">
-              <div className="border-b border-[#e5e7eb] px-6 py-4">
-                <h3 className="text-base font-semibold text-[#111827]">
+            <div className="card mt-8 overflow-hidden">
+              <div className="border-b border-[#f0f0f0] px-6 py-4">
+                <h3 className="text-base font-semibold text-[#0f0f0f]">
                   Top Products
                 </h3>
                 <p className="mt-0.5 text-sm text-[#6b7280]">
@@ -278,10 +295,7 @@ export default function ReportsPage() {
               ) : (
                 <table className="w-full text-left text-sm">
                   <thead>
-                    <tr className="border-b border-[#e5e7eb]">
-                      <th className="px-6 py-3 text-xs font-medium uppercase tracking-wide text-[#6b7280]">
-                        #
-                      </th>
+                    <tr className="table-head border-b border-[#f0f0f0]">
                       <th className="px-6 py-3 text-xs font-medium uppercase tracking-wide text-[#6b7280]">
                         Product
                       </th>
@@ -296,25 +310,30 @@ export default function ReportsPage() {
                       </th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-[#e5e7eb]">
-                    {topProducts.map((product, index) => (
+                  <tbody className="divide-y divide-[#f0f0f0]">
+                    {topProducts.map((product) => (
                       <tr
                         key={product.name}
-                        className="transition-colors hover:bg-gray-50"
+                        className="table-row"
                       >
-                        <td className="px-6 py-4 font-mono text-sm text-[#6b7280]">
-                          {index + 1}
+                        <td className="px-6">
+                          <p className="font-medium text-[#0f0f0f]">
+                            {product.name}
+                          </p>
+                          <div className="mt-2 h-1 w-full max-w-[200px] overflow-hidden rounded-full bg-[#f0f0f0]">
+                            <div
+                              className="h-full rounded-full bg-black"
+                              style={{ width: `${product.percentOfTotal}%` }}
+                            />
+                          </div>
                         </td>
-                        <td className="px-6 py-4 font-medium text-[#111827]">
-                          {product.name}
-                        </td>
-                        <td className="px-6 py-4 text-[#6b7280]">
+                        <td className="px-6 text-[#6b7280]">
                           {product.unitsSold}
                         </td>
-                        <td className="px-6 py-4 text-[#111827]">
+                        <td className="px-6 text-[#0f0f0f]">
                           {formatRM(product.revenue)}
                         </td>
-                        <td className="px-6 py-4 text-[#6b7280]">
+                        <td className="px-6 text-[#6b7280]">
                           {product.percentOfTotal}%
                         </td>
                       </tr>

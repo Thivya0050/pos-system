@@ -7,8 +7,10 @@ import {
   ArrowRight,
   BarChart3,
   DollarSign,
+  Inbox,
   Loader2,
   Package,
+  PackageOpen,
   Plus,
   Receipt,
   ShoppingBag,
@@ -138,25 +140,25 @@ export default function DashboardPage() {
         label: "Today's Sales",
         value: formatRM(stats.todaySales),
         icon: DollarSign,
-        border: "border-l-[#2563eb]",
+        topBorder: "border-t-blue-500",
       },
       {
         label: "Orders Today",
         value: stats.ordersToday.toString(),
         icon: ShoppingBag,
-        border: "border-l-emerald-500",
+        topBorder: "border-t-emerald-500",
       },
       {
         label: "Total Products",
         value: stats.totalProducts.toString(),
         icon: Package,
-        border: "border-l-violet-500",
+        topBorder: "border-t-violet-500",
       },
       {
         label: "Low Stock Items",
         value: stats.lowStockCount.toString(),
         icon: AlertTriangle,
-        border: "border-l-amber-500",
+        topBorder: "border-t-orange-500",
       },
     ],
     [stats]
@@ -174,14 +176,14 @@ export default function DashboardPage() {
       <div className="p-8">
         <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <h2 className="text-2xl font-bold text-[#111827]">
-              {getGreeting()}, Admin 👋
+            <h2 className="text-2xl font-bold text-[#0f0f0f]">
+              {getGreeting()}, Admin
             </h2>
             <p className="mt-1 text-sm text-[#6b7280]">{getFullDate()}</p>
           </div>
           <Link
             href="/pos"
-            className="inline-flex items-center gap-2 rounded-md bg-[#111827] px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-gray-800"
+            className="btn-primary inline-flex items-center gap-2 px-4 py-2.5 text-sm"
           >
             Go to Cashier
             <ArrowRight className="h-4 w-4" />
@@ -189,7 +191,7 @@ export default function DashboardPage() {
         </div>
 
         {error && (
-          <div className="mb-6 rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">
+          <div className="mb-6 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">
             {error}
           </div>
         )}
@@ -200,42 +202,43 @@ export default function DashboardPage() {
           </div>
         ) : (
           <>
-            <div className="mb-8 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+            <div className="mb-8 grid gap-4 sm:grid-cols-2">
               {kpiCards.map((card) => (
                 <div
                   key={card.label}
-                  className={`rounded-lg border border-[#e5e7eb] border-l-4 bg-white p-5 ${card.border}`}
+                  className={`card border-t-[3px] p-5 ${card.topBorder}`}
                 >
                   <div className="flex items-start justify-between">
                     <div>
-                      <p className="text-2xl font-bold text-[#111827]">
+                      <p className="text-[32px] font-bold leading-none text-[#0f0f0f]">
                         {card.value}
                       </p>
-                      <p className="mt-1 text-sm text-[#6b7280]">
+                      <p className="mt-2 text-[13px] text-[#6b7280]">
                         {card.label}
                       </p>
                     </div>
-                    <card.icon className="h-4 w-4 text-[#6b7280]" />
+                    <card.icon className="h-4 w-4 text-[#d1d5db]" />
                   </div>
                 </div>
               ))}
             </div>
 
             <div className="mb-8 grid gap-6 lg:grid-cols-2">
-              <div className="overflow-hidden rounded-lg border border-[#e5e7eb] bg-white">
-                <div className="border-b border-[#e5e7eb] px-6 py-4">
-                  <h3 className="text-base font-semibold text-[#111827]">
+              <div className="card overflow-hidden">
+                <div className="border-b border-[#f0f0f0] px-6 py-4">
+                  <h3 className="text-base font-semibold text-[#0f0f0f]">
                     Recent Orders
                   </h3>
                 </div>
                 {recentOrders.length === 0 ? (
-                  <p className="px-6 py-12 text-center text-sm text-[#6b7280]">
-                    No orders yet
-                  </p>
+                  <div className="flex flex-col items-center justify-center px-6 py-12 text-center">
+                    <Inbox className="mb-3 h-8 w-8 text-[#d1d5db]" />
+                    <p className="text-sm text-[#6b7280]">No orders yet</p>
+                  </div>
                 ) : (
                   <table className="w-full text-left text-sm">
                     <thead>
-                      <tr className="border-b border-[#e5e7eb]">
+                      <tr className="border-b border-[#f0f0f0] bg-[#fafafa]">
                         <th className="px-6 py-3 text-xs font-medium uppercase tracking-wide text-[#6b7280]">
                           Order ID
                         </th>
@@ -250,19 +253,19 @@ export default function DashboardPage() {
                         </th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-[#e5e7eb]">
+                    <tbody className="divide-y divide-[#f0f0f0]">
                       {recentOrders.map((order) => (
                         <tr
                           key={order.id}
-                          className="transition-colors hover:bg-gray-50"
+                          className="transition-colors hover:bg-[#fafafa]"
                         >
-                          <td className="px-6 py-3 font-mono text-[#111827]">
+                          <td className="px-6 py-3 font-mono text-[#0f0f0f]">
                             {formatOrderId(order.id)}
                           </td>
                           <td className="px-6 py-3 text-[#6b7280]">
                             {formatOrderTime(order.created_at)}
                           </td>
-                          <td className="px-6 py-3 font-medium text-[#111827]">
+                          <td className="px-6 py-3 font-medium text-[#0f0f0f]">
                             {formatRM(Number(order.total))}
                           </td>
                           <td className="px-6 py-3 text-[#6b7280]">
@@ -275,26 +278,29 @@ export default function DashboardPage() {
                 )}
               </div>
 
-              <div className="overflow-hidden rounded-lg border border-[#e5e7eb] bg-white">
-                <div className="border-b border-[#e5e7eb] px-6 py-4">
-                  <h3 className="text-base font-semibold text-[#111827]">
+              <div className="card overflow-hidden">
+                <div className="border-b border-[#f0f0f0] px-6 py-4">
+                  <h3 className="text-base font-semibold text-[#0f0f0f]">
                     Stock Alerts
                   </h3>
                 </div>
                 {lowStockProducts.length === 0 ? (
-                  <p className="px-6 py-12 text-center text-sm text-[#6b7280]">
-                    All products well stocked
-                  </p>
+                  <div className="flex flex-col items-center justify-center px-6 py-12 text-center">
+                    <PackageOpen className="mb-3 h-8 w-8 text-[#d1d5db]" />
+                    <p className="text-sm text-[#6b7280]">
+                      All products well stocked
+                    </p>
+                  </div>
                 ) : (
-                  <ul className="divide-y divide-[#e5e7eb]">
+                  <ul className="divide-y divide-[#f0f0f0]">
                     {lowStockProducts.map((product) => {
                       const indicator = getStockIndicator(product.stock);
                       return (
                         <li
                           key={product.id}
-                          className="flex items-center justify-between px-6 py-4"
+                          className="flex items-center justify-between px-6 py-4 transition-colors hover:bg-[#fafafa]"
                         >
-                          <span className="font-medium text-[#111827]">
+                          <span className="font-medium text-[#0f0f0f]">
                             {product.name}
                           </span>
                           <span className="inline-flex items-center gap-2 text-sm text-[#6b7280]">
@@ -320,12 +326,15 @@ export default function DashboardPage() {
                   <Link
                     key={action.href}
                     href={action.href}
-                    className="flex items-center gap-3 rounded-lg border border-[#e5e7eb] bg-white p-4 transition-colors hover:bg-gray-50"
+                    className="card group flex flex-col items-center p-5 transition-shadow hover:shadow-md"
                   >
-                    <action.icon className="h-4 w-4 text-[#6b7280]" />
-                    <span className="text-sm font-medium text-[#111827]">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#f5f5f5]">
+                      <action.icon className="h-4 w-4 text-[#6b7280]" />
+                    </div>
+                    <span className="mt-3 text-sm font-bold text-[#0f0f0f]">
                       {action.label}
                     </span>
+                    <ArrowRight className="mt-2 h-4 w-4 text-[#9ca3af] opacity-0 transition-opacity group-hover:opacity-100" />
                   </Link>
                 ))}
               </div>
