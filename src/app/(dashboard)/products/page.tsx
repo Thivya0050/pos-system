@@ -1,467 +1,382 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Loader2, Pencil, Search, Trash2, X } from "lucide-react";
+import { AlertTriangle, ImageIcon, Inbox, Loader2, Pencil, Plus, Search, Trash2 } from "lucide-react";
+import { ErrorBanner } from "@/components/ErrorBanner";
+import { Modal, ModalCancelButton, ModalField, ModalForm } from "@/components/Modal";
+import { PinConfirmModal } from "@/components/PinConfirmModal";
+import { useManagerPinGate } from "@/hooks/useManagerPinGate";
 import { supabase } from "@/lib/supabase";
-import type { ProductRow } from "@/types/database";
+import { formatRM } from "@/lib/utils";
+import type { Category, Product } from "@/types/database";
 
-type Category = "Food" | "Drinks" | "Snacks" | "Others";
+function stockIndicator(stock: number) {
+  if (stock === 0) return { color: "bg-red-500", label: "Out of stock" };
+  if (stock <= 10) return { color: "bg-orange-500", label: "Low" };
+  if (stock <= 50) return { color: "bg-amber-400", label: "Medium" };
+  return { color: "bg-emerald-500", label: "Good" };
+}
 
-type Product = {
-  id: string;
-  name: string;
-  category: Category;
-  price: number;
-  stock: number;
-};
-
-const CATEGORIES: Category[] = ["Food", "Drinks", "Snacks", "Others"];
-
-type FormState = {
-  name: string;
-  category: Category;
-  price: string;
-  stock: string;
-};
-
-const emptyForm: FormState = {
+const emptyForm = {
   name: "",
-  category: "Food",
-  price: "",
+  barcode: "",
+  category_id: "",
+  normal_price: "",
+  member_price: "",
+  gold_price: "",
+  platinum_price: "",
   stock: "",
+  requires_prescription: false,
 };
-
-function mapProduct(row: ProductRow): Product {
-  return {
-    id: row.id,
-    name: row.name,
-    category: row.category as Category,
-    price: Number(row.price),
-    stock: row.stock,
-  };
-}
-
-function formatRM(amount: number) {
-  return `RM${amount.toFixed(2)}`;
-}
-
-function getStockStatus(stock: number) {
-  if (stock === 0) {
-    return { label: "Out of Stock", dot: "bg-red-500" };
-  }
-  if (stock <= 10) {
-    return { label: "Low Stock", dot: "bg-amber-500" };
-  }
-  return { label: "In Stock", dot: "bg-gray-400" };
-}
 
 export default function ProductsPage() {
   const [products, setProducts] = useState<Product[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [modalOpen, setModalOpen] = useState(false);
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const [form, setForm] = useState<FormState>(emptyForm);
   const [search, setSearch] = useState("");
-  const [categoryFilter, setCategoryFilter] = useState<Category | "All">("All");
+  const [categoryFilter, setCategoryFilter] = useState("all");
+  const [modalOpen, setModalOpen] = useState(false);
+  const [modalMode, setModalMode] = useState<"create" | "edit">("create");
+  const [editingProduct, setEditingProduct] = useState<Product | null>(null);
+  const [deleteConfirm, setDeleteConfirm] = useState<Product | null>(null);
+  const [deleting, setDeleting] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [form, setForm] = useState(emptyForm);
+  const { pinOpen, requestPin, closePin, onPinSuccess } = useManagerPinGate();
 
-  const fetchProducts = useCallback(async () => {
+  const fetchData = useCallback(async () => {
     setLoading(true);
     setError(null);
-
-    const { data, error: fetchError } = await supabase
-      .from("products")
-      .select("*")
-      .order("name");
-
-    if (fetchError) {
-      setError(fetchError.message);
-      setProducts([]);
-    } else {
-      setProducts((data ?? []).map(mapProduct));
-    }
-
+    const [prodRes, catRes] = await Promise.all([
+      supabase.from("products").select("*, categories(*)").order("name"),
+      supabase.from("categories").select("*").order("name"),
+    ]);
+    if (prodRes.error) setError(prodRes.error.message);
+    else if (catRes.error) setError(catRes.error.message);
+    setProducts((prodRes.data ?? []) as Product[]);
+    setCategories(catRes.data ?? []);
     setLoading(false);
   }, []);
 
   useEffect(() => {
-    fetchProducts();
-  }, [fetchProducts]);
+    fetchData();
+  }, [fetchData]);
 
-  const filteredProducts = useMemo(() => {
-    const query = search.toLowerCase().trim();
+  const filtered = useMemo(() => {
+    const q = search.toLowerCase().trim();
     return products.filter((p) => {
-      const matchesSearch = !query || p.name.toLowerCase().includes(query);
-      const matchesCategory =
-        categoryFilter === "All" || p.category === categoryFilter;
-      return matchesSearch && matchesCategory;
+      const matchesSearch =
+        !q ||
+        p.name.toLowerCase().includes(q) ||
+        (p.barcode?.includes(q) ?? false);
+      const matchesCat =
+        categoryFilter === "all" || p.category_id === categoryFilter;
+      return matchesSearch && matchesCat;
     });
   }, [products, search, categoryFilter]);
 
-  function openAddModal() {
-    setEditingId(null);
+  function openCreateModal() {
+    setModalMode("create");
+    setEditingProduct(null);
     setForm(emptyForm);
+    setImageFile(null);
     setModalOpen(true);
   }
 
   function openEditModal(product: Product) {
-    setEditingId(product.id);
+    setModalMode("edit");
+    setEditingProduct(product);
     setForm({
       name: product.name,
-      category: product.category,
-      price: product.price.toString(),
-      stock: product.stock.toString(),
+      barcode: product.barcode ?? "",
+      category_id: product.category_id ?? "",
+      normal_price: String(product.normal_price),
+      member_price: String(product.member_price),
+      gold_price: product.gold_price != null ? String(product.gold_price) : "",
+      platinum_price: product.platinum_price != null ? String(product.platinum_price) : "",
+      stock: String(product.stock),
+      requires_prescription: product.requires_prescription,
     });
+    setImageFile(null);
     setModalOpen(true);
   }
 
   function closeModal() {
     setModalOpen(false);
-    setEditingId(null);
+    setEditingProduct(null);
     setForm(emptyForm);
+    setImageFile(null);
   }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-
-    const price = parseFloat(form.price);
-    const stock = parseInt(form.stock, 10);
-
-    if (!form.name.trim() || isNaN(price) || isNaN(stock)) return;
-
     setSaving(true);
     setError(null);
 
+    let imageUrl: string | null = null;
+    if (imageFile) {
+      const ext = imageFile.name.split(".").pop() ?? "jpg";
+      const path = `${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
+      const { error: uploadErr } = await supabase.storage
+        .from("product-images")
+        .upload(path, imageFile);
+      if (uploadErr) {
+        setError(uploadErr.message);
+        setSaving(false);
+        return;
+      }
+      const { data: urlData } = supabase.storage.from("product-images").getPublicUrl(path);
+      imageUrl = urlData.publicUrl;
+    }
+
     const payload = {
       name: form.name.trim(),
-      category: form.category,
-      price,
-      stock,
+      barcode: form.barcode.trim() || null,
+      category_id: form.category_id || null,
+      normal_price: parseFloat(form.normal_price),
+      member_price: parseFloat(form.member_price),
+      gold_price: form.gold_price ? parseFloat(form.gold_price) : null,
+      platinum_price: form.platinum_price ? parseFloat(form.platinum_price) : null,
+      stock: parseInt(form.stock, 10) || 0,
+      image_url: imageUrl ?? (modalMode === "edit" ? editingProduct?.image_url ?? null : null),
+      requires_prescription: form.requires_prescription,
+      ...(modalMode === "create" ? { is_active: true } : {}),
     };
 
-    if (editingId) {
-      const { error: updateError } = await supabase
-        .from("products")
-        .update(payload)
-        .eq("id", editingId);
-
-      if (updateError) {
-        setError(updateError.message);
-        setSaving(false);
-        return;
+    if (modalMode === "create") {
+      const { error: insertErr } = await supabase.from("products").insert([payload] as never);
+      if (insertErr) setError(insertErr.message);
+      else {
+        closeModal();
+        await fetchData();
       }
-    } else {
-      const { error: insertError } = await supabase
+    } else if (editingProduct) {
+      const { error: updateErr } = await supabase
         .from("products")
-        .insert(payload);
-
-      if (insertError) {
-        setError(insertError.message);
-        setSaving(false);
-        return;
+        .update(payload as never)
+        .eq("id", editingProduct.id);
+      if (updateErr) setError(updateErr.message);
+      else {
+        closeModal();
+        await fetchData();
       }
     }
-
-    await fetchProducts();
     setSaving(false);
-    closeModal();
   }
 
-  async function handleDelete(id: string) {
+  async function handleDelete() {
+    if (!deleteConfirm) return;
+    setDeleting(true);
     setError(null);
-
-    const { error: deleteError } = await supabase
+    const { error: deleteErr } = await supabase
       .from("products")
       .delete()
-      .eq("id", id);
-
-    if (deleteError) {
-      setError(deleteError.message);
-      return;
+      .eq("id", deleteConfirm.id);
+    if (deleteErr) setError(deleteErr.message);
+    else {
+      setDeleteConfirm(null);
+      await fetchData();
     }
-
-    setProducts((prev) => prev.filter((p) => p.id !== id));
+    setDeleting(false);
   }
 
   return (
-    <div className="flex h-full flex-col overflow-auto">
-      <div className="p-8">
-        {error && (
-          <div className="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">
-            {error}
-          </div>
-        )}
-
-        <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <h2 className="text-xl font-bold text-[#0f0f0f]">Products</h2>
-          <button
-            type="button"
-            onClick={openAddModal}
-            disabled={loading}
-            className="btn-primary shrink-0 px-4 py-2 text-sm"
-          >
-            + Add Product
-          </button>
+    <div className="h-full overflow-auto p-6">
+      <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h2 className="text-xl font-semibold text-[#0f172a]">Products</h2>
+          <p className="mt-0.5 text-sm text-[#64748b]">Manage inventory and pricing</p>
         </div>
+        <button type="button" onClick={openCreateModal} className="btn-primary inline-flex items-center gap-2 px-4 py-2 text-sm">
+          <Plus className="h-4 w-4" />
+          Add Product
+        </button>
+      </div>
 
-        <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center">
-          <div className="relative flex-1">
-            <Search className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-[#9ca3af]" />
-            <input
-              type="text"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search products by name..."
-              disabled={loading}
-              className="input-field h-11 pl-11 disabled:opacity-60"
-            />
-          </div>
-          <select
-            value={categoryFilter}
-            onChange={(e) =>
-              setCategoryFilter(e.target.value as Category | "All")
-            }
-            disabled={loading}
-            className="input-field h-11 disabled:opacity-60 sm:w-44"
-          >
-            <option value="All">All Categories</option>
-            {CATEGORIES.map((cat) => (
-              <option key={cat} value={cat}>
-                {cat}
-              </option>
-            ))}
-          </select>
+      {error && <ErrorBanner error={error} onRetry={() => void fetchData()} />}
+
+      <div className="mb-4 flex flex-col gap-3 sm:flex-row">
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#94a3b8]" />
+          <input type="text" placeholder="Search products or barcode..." value={search} onChange={(e) => setSearch(e.target.value)} className="input-field pl-9" />
         </div>
+        <select value={categoryFilter} onChange={(e) => setCategoryFilter(e.target.value)} className="input-field w-full sm:w-48">
+          <option value="all">All Categories</option>
+          {categories.map((c) => (
+            <option key={c.id} value={c.id}>{c.name}</option>
+          ))}
+        </select>
+      </div>
 
+      <div className="card overflow-hidden p-0">
         {loading ? (
-          <div className="flex items-center justify-center py-24">
-            <Loader2 className="h-6 w-6 animate-spin text-gray-400" />
+          <div className="flex justify-center py-16"><Loader2 className="h-6 w-6 animate-spin text-[#64748b]" /></div>
+        ) : filtered.length === 0 ? (
+          <div className="flex flex-col items-center py-16 text-[#64748b]">
+            <Inbox className="mb-2 h-8 w-8 text-[#cbd5e1]" />
+            <p className="text-sm">No products found</p>
           </div>
         ) : (
-          <div className="card overflow-hidden">
-            <div className="max-h-[calc(100vh-280px)] overflow-auto">
-              <table className="w-full text-left text-sm">
-                <thead className="sticky top-0 z-10">
-                  <tr className="table-head border-b border-[#f0f0f0]">
-                    <th className="px-6 py-3 text-xs font-medium uppercase tracking-wide text-[#6b7280]">
-                      Name
-                    </th>
-                    <th className="px-6 py-3 text-xs font-medium uppercase tracking-wide text-[#6b7280]">
-                      Category
-                    </th>
-                    <th className="px-6 py-3 text-xs font-medium uppercase tracking-wide text-[#6b7280]">
-                      Price
-                    </th>
-                    <th className="px-6 py-3 text-xs font-medium uppercase tracking-wide text-[#6b7280]">
-                      Stock
-                    </th>
-                    <th className="px-6 py-3 text-xs font-medium uppercase tracking-wide text-[#6b7280]">
-                      Status
-                    </th>
-                    <th className="px-6 py-3 text-xs font-medium uppercase tracking-wide text-[#6b7280]">
-                      Actions
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-[#f0f0f0]">
-                  {filteredProducts.map((product) => {
-                    const status = getStockStatus(product.stock);
-                    return (
-                      <tr key={product.id} className="table-row group">
-                        <td className="px-6 font-medium text-[#0f0f0f]">
-                          {product.name}
-                        </td>
-                        <td className="px-6 text-[#6b7280]">
-                          {product.category}
-                        </td>
-                        <td className="px-6 text-[#0f0f0f]">
-                          {formatRM(product.price)}
-                        </td>
-                        <td className="px-6 text-[#6b7280]">
-                          {product.stock}
-                        </td>
-                        <td className="px-6">
-                          <span className="inline-flex items-center gap-2 text-xs text-[#6b7280]">
-                            <span
-                              className={`h-2 w-2 rounded-full ${status.dot}`}
-                            />
-                            {status.label}
-                          </span>
-                        </td>
-                        <td className="px-6">
-                          <div className="flex items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100">
-                            <button
-                              type="button"
-                              onClick={() => openEditModal(product)}
-                              className="rounded-md p-2 text-[#6b7280] transition-colors hover:bg-[#f5f5f5] hover:text-[#0f0f0f]"
-                              aria-label="Edit product"
-                            >
-                              <Pencil className="h-4 w-4" />
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => handleDelete(product.id)}
-                              className="rounded-md p-2 text-[#6b7280] transition-colors hover:bg-red-50 hover:text-red-600"
-                              aria-label="Delete product"
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </button>
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="table-head">
+                <th className="px-4 py-2 text-left text-xs font-medium text-[#64748b]">Product</th>
+                <th className="px-4 py-2 text-left text-xs font-medium text-[#64748b]">Category</th>
+                <th className="px-4 py-2 text-left text-xs font-medium text-[#64748b]">Normal</th>
+                <th className="px-4 py-2 text-left text-xs font-medium text-[#64748b]">Member</th>
+                <th className="px-4 py-2 text-left text-xs font-medium text-[#64748b]">Stock</th>
+                <th className="px-4 py-2 text-left text-xs font-medium text-[#64748b]">Rx</th>
+                <th className="px-4 py-2 text-right text-xs font-medium text-[#64748b]">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filtered.map((p) => {
+                const stock = stockIndicator(p.stock);
+                const cat = (p.categories as Category | null)?.name ?? "—";
+                return (
+                  <tr key={p.id} className="table-row group">
+                    <td className="px-4">
+                      <div className="flex items-center gap-3">
+                        {p.image_url ? (
+                          <img src={p.image_url} alt="" className="h-9 w-9 rounded-lg object-cover" />
+                        ) : (
+                          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-[#f1f5f9]">
+                            <ImageIcon className="h-4 w-4 text-[#94a3b8]" />
                           </div>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-
-            {filteredProducts.length === 0 && (
-              <p className="py-12 text-center text-sm text-[#6b7280]">
-                {products.length === 0
-                  ? 'No products yet. Click "Add Product" to get started.'
-                  : "No products match your filters."}
-              </p>
-            )}
-          </div>
+                        )}
+                        <div>
+                          <p className="font-medium text-[#0f172a]">{p.name}</p>
+                          {p.barcode && <p className="text-xs text-[#64748b]">{p.barcode}</p>}
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-4 text-[#64748b]">{cat}</td>
+                    <td className="px-4 text-[#0f172a]">{formatRM(Number(p.normal_price))}</td>
+                    <td className="px-4 text-[#0f172a]">{formatRM(Number(p.member_price))}</td>
+                    <td className="px-4">
+                      <span className="inline-flex items-center gap-2 text-[#64748b]">
+                        <span className={`h-2 w-2 rounded-full ${stock.color}`} />
+                        {p.stock} ({stock.label})
+                      </span>
+                    </td>
+                    <td className="px-4">
+                      {p.requires_prescription ? (
+                        <span title="Prescription required">
+                          <AlertTriangle className="h-4 w-4 text-amber-500" />
+                        </span>
+                      ) : (
+                        <span className="text-[#94a3b8]">—</span>
+                      )}
+                    </td>
+                    <td className="px-4">
+                      <div className="flex items-center justify-end gap-1 opacity-0 transition-opacity group-hover:opacity-100">
+                        <button
+                          type="button"
+                          onClick={() => requestPin(() => openEditModal(p))}
+                          className="rounded p-1.5 text-[#64748b] hover:bg-[#f1f5f9] hover:text-[#2563eb]"
+                          title="Edit product"
+                        >
+                          <Pencil className="h-4 w-4" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => requestPin(() => setDeleteConfirm(p))}
+                          className="rounded p-1.5 text-[#64748b] hover:bg-red-50 hover:text-red-600"
+                          title="Delete product"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
         )}
       </div>
 
-      {modalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-          <div className="card w-full max-w-md">
-            <div className="flex items-center justify-between border-b border-[#f0f0f0] px-6 py-4">
-              <h3 className="text-base font-semibold text-[#0f0f0f]">
-                {editingId ? "Edit Product" : "Add Product"}
-              </h3>
-              <button
-                type="button"
-                onClick={closeModal}
-                disabled={saving}
-                className="rounded-md p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
-                aria-label="Close"
-              >
-                <X className="h-5 w-5" />
-              </button>
-            </div>
+      <PinConfirmModal open={pinOpen} onClose={closePin} onSuccess={onPinSuccess} />
 
-            <form onSubmit={handleSubmit} className="space-y-4 p-6">
-              <div>
-                <label
-                  htmlFor="name"
-                  className="mb-1.5 block text-sm font-medium text-[#0f0f0f]"
-                >
-                  Product name
-                </label>
-                <input
-                  id="name"
-                  type="text"
-                  value={form.name}
-                  onChange={(e) =>
-                    setForm((prev) => ({ ...prev, name: e.target.value }))
-                  }
-                  required
-                  disabled={saving}
-                  placeholder="e.g. Nasi Lemak"
-                  className="input-field disabled:opacity-60"
-                />
-              </div>
-
-              <div>
-                <label
-                  htmlFor="category"
-                  className="mb-1.5 block text-sm font-medium text-[#0f0f0f]"
-                >
-                  Category
-                </label>
-                <select
-                  id="category"
-                  value={form.category}
-                  onChange={(e) =>
-                    setForm((prev) => ({
-                      ...prev,
-                      category: e.target.value as Category,
-                    }))
-                  }
-                  disabled={saving}
-                  className="input-field disabled:opacity-60"
-                >
-                  {CATEGORIES.map((cat) => (
-                    <option key={cat} value={cat}>
-                      {cat}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label
-                  htmlFor="price"
-                  className="mb-1.5 block text-sm font-medium text-[#0f0f0f]"
-                >
-                  Price (RM)
-                </label>
-                <input
-                  id="price"
-                  type="number"
-                  min="0"
-                  step="0.01"
-                  value={form.price}
-                  onChange={(e) =>
-                    setForm((prev) => ({ ...prev, price: e.target.value }))
-                  }
-                  required
-                  disabled={saving}
-                  placeholder="0.00"
-                  className="input-field disabled:opacity-60"
-                />
-              </div>
-
-              <div>
-                <label
-                  htmlFor="stock"
-                  className="mb-1.5 block text-sm font-medium text-[#0f0f0f]"
-                >
-                  Stock quantity
-                </label>
-                <input
-                  id="stock"
-                  type="number"
-                  min="0"
-                  step="1"
-                  value={form.stock}
-                  onChange={(e) =>
-                    setForm((prev) => ({ ...prev, stock: e.target.value }))
-                  }
-                  required
-                  disabled={saving}
-                  placeholder="0"
-                  className="input-field disabled:opacity-60"
-                />
-              </div>
-
-              <div className="flex justify-end gap-3 pt-2">
-                <button
-                  type="button"
-                  onClick={closeModal}
-                  disabled={saving}
-                  className="rounded-lg border border-[#f0f0f0] px-4 py-2 text-sm font-medium text-[#6b7280] transition-colors hover:bg-[#fafafa] disabled:opacity-60"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={saving}
-                  className="btn-primary flex items-center gap-2 px-4 py-2 text-sm"
-                >
-                  {saving && <Loader2 className="h-4 w-4 animate-spin" />}
-                  {editingId ? "Save Changes" : "Add Product"}
-                </button>
-              </div>
-            </form>
+      <ModalForm
+        open={modalOpen}
+        onClose={closeModal}
+        title={modalMode === "create" ? "Add Product" : "Edit Product"}
+        size="wide"
+        onSubmit={handleSubmit}
+        footer={
+          <>
+            <ModalCancelButton onClick={closeModal} />
+            <button type="submit" disabled={saving} className="btn-primary px-4 py-2 text-sm">
+              {saving ? (
+                <Loader2 className="mx-auto h-4 w-4 animate-spin" />
+              ) : modalMode === "create" ? (
+                "Add Product"
+              ) : (
+                "Save changes"
+              )}
+            </button>
+          </>
+        }
+      >
+        <div className="grid gap-4 sm:grid-cols-2">
+          <ModalField label="Name *">
+            <input required className="input-field" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
+          </ModalField>
+          <ModalField label="Barcode">
+            <input className="input-field" value={form.barcode} onChange={(e) => setForm({ ...form, barcode: e.target.value })} />
+          </ModalField>
+          <ModalField label="Category">
+            <select className="input-field" value={form.category_id} onChange={(e) => setForm({ ...form, category_id: e.target.value })}>
+              <option value="">None</option>
+              {categories.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+            </select>
+          </ModalField>
+          <ModalField label="Normal Price *">
+            <input required type="number" step="0.01" min="0" className="input-field" value={form.normal_price} onChange={(e) => setForm({ ...form, normal_price: e.target.value })} />
+          </ModalField>
+          <ModalField label="Member Price *">
+            <input required type="number" step="0.01" min="0" className="input-field" value={form.member_price} onChange={(e) => setForm({ ...form, member_price: e.target.value })} />
+          </ModalField>
+          <ModalField label="Gold Price">
+            <input type="number" step="0.01" min="0" className="input-field" value={form.gold_price} onChange={(e) => setForm({ ...form, gold_price: e.target.value })} />
+          </ModalField>
+          <ModalField label="Platinum Price">
+            <input type="number" step="0.01" min="0" className="input-field" value={form.platinum_price} onChange={(e) => setForm({ ...form, platinum_price: e.target.value })} />
+          </ModalField>
+          <ModalField label="Stock *">
+            <input required type="number" min="0" className="input-field" value={form.stock} onChange={(e) => setForm({ ...form, stock: e.target.value })} />
+          </ModalField>
+          <ModalField label="Image">
+            <input type="file" accept="image/*" className="input-field text-xs" onChange={(e) => setImageFile(e.target.files?.[0] ?? null)} />
+          </ModalField>
+          <div className="flex items-center gap-2 sm:col-span-2">
+            <input type="checkbox" id="rx" checked={form.requires_prescription} onChange={(e) => setForm({ ...form, requires_prescription: e.target.checked })} />
+            <label htmlFor="rx" className="text-sm text-[#64748b]">Requires prescription</label>
           </div>
         </div>
-      )}
+      </ModalForm>
+
+      <Modal
+        open={!!deleteConfirm}
+        onClose={() => setDeleteConfirm(null)}
+        title="Delete product?"
+        size="narrow"
+        footer={
+          <>
+            <ModalCancelButton onClick={() => setDeleteConfirm(null)} />
+            <button type="button" disabled={deleting} onClick={handleDelete} className="btn-danger">
+              {deleting ? <Loader2 className="mx-auto h-4 w-4 animate-spin" /> : "Delete"}
+            </button>
+          </>
+        }
+      >
+        <p className="text-sm text-[#64748b]">
+          Are you sure you want to delete {deleteConfirm?.name}?
+        </p>
+      </Modal>
     </div>
   );
 }

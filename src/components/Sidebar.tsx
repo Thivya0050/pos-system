@@ -2,104 +2,87 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
 import {
   BarChart3,
-  Home,
-  LayoutGrid,
-  Package,
+  Building2,
+  LayoutDashboard,
+  LogOut,
+  Pill,
   Receipt,
+  Settings,
+  ShoppingCart,
+  Tag,
+  Users,
 } from "lucide-react";
-import { getCartCount, logout } from "@/lib/auth";
+import { clearSession, getSession } from "@/lib/auth";
+import { getInitials } from "@/lib/utils";
 
 const navItems = [
-  { href: "/dashboard", label: "Dashboard", icon: Home },
-  { href: "/pos", label: "POS", icon: LayoutGrid },
-  { href: "/products", label: "Products", icon: Package },
+  { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
+  { href: "/cashier", label: "Cashier", icon: ShoppingCart },
+  { href: "/members", label: "Members", icon: Users },
+  { href: "/products", label: "Products", icon: Pill },
+  { href: "/promotions", label: "Promotions", icon: Tag },
   { href: "/orders", label: "Orders", icon: Receipt },
   { href: "/reports", label: "Reports", icon: BarChart3 },
+  { href: "/branches", label: "Branches", icon: Building2 },
+  { href: "/settings", label: "Settings", icon: Settings },
 ];
 
 export default function Sidebar() {
   const pathname = usePathname();
   const router = useRouter();
-  const [cartCount, setCartCount] = useState(0);
-
-  useEffect(() => {
-    setCartCount(getCartCount());
-
-    function handleCartUpdate() {
-      setCartCount(getCartCount());
-    }
-
-    window.addEventListener("cart-updated", handleCartUpdate);
-    window.addEventListener("storage", handleCartUpdate);
-    return () => {
-      window.removeEventListener("cart-updated", handleCartUpdate);
-      window.removeEventListener("storage", handleCartUpdate);
-    };
-  }, []);
+  const session = getSession();
 
   function handleLogout() {
-    logout();
+    clearSession();
     router.push("/login");
   }
 
   return (
-    <aside className="flex h-full w-[220px] shrink-0 flex-col bg-[#0f0f0f]">
-      <div className="flex items-center gap-3 px-5 py-6">
-        <div className="flex h-8 w-8 items-center justify-center rounded-md bg-white text-xs font-semibold text-[#0f0f0f]">
-          PS
-        </div>
-        <span className="text-sm font-semibold text-white">POS System</span>
+    <aside className="flex h-full w-14 shrink-0 flex-col items-center bg-[#1e293b] py-4">
+      <div className="mb-6 flex h-9 w-9 items-center justify-center rounded-lg bg-blue-600">
+        <Pill className="h-4 w-4 text-white" />
       </div>
 
-      <nav className="flex-1 px-3">
+      <nav className="flex flex-1 flex-col items-center gap-1">
         {navItems.map(({ href, label, icon: Icon }) => {
           const isActive =
             pathname === href || pathname.startsWith(`${href}/`);
-          const showCartBadge = href === "/pos" && cartCount > 0;
-
           return (
             <Link
               key={href}
               href={href}
-              className={`relative mb-0.5 flex items-center gap-3 border-l-2 py-2.5 pl-3 pr-2 text-sm transition-colors ${
+              title={label}
+              className={`group relative flex h-10 w-10 items-center justify-center rounded-lg transition-colors ${
                 isActive
-                  ? "border-white text-white"
-                  : "border-transparent text-[#9ca3af] hover:text-white"
+                  ? "bg-blue-600 text-white"
+                  : "text-slate-400 hover:bg-slate-700 hover:text-white"
               }`}
             >
-              <span className="relative">
-                <Icon className="h-4 w-4" strokeWidth={1.75} />
-                {showCartBadge && (
-                  <span className="absolute -right-1 -top-1 flex h-3.5 w-3.5 items-center justify-center rounded-full bg-white text-[9px] font-medium text-[#0f0f0f]">
-                    {cartCount > 9 ? "9+" : cartCount}
-                  </span>
-                )}
+              <Icon className="h-5 w-5" strokeWidth={1.75} />
+              <span className="pointer-events-none absolute left-full ml-2 hidden whitespace-nowrap rounded-md bg-slate-800 px-2 py-1 text-xs text-white group-hover:block">
+                {label}
               </span>
-              {label}
             </Link>
           );
         })}
       </nav>
 
-      <div className="border-t border-white/10 px-5 py-4">
-        <div className="flex items-center gap-3">
-          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[#262626] text-xs font-medium text-white">
-            AD
-          </div>
-          <div>
-            <p className="text-[13px] text-white">Admin</p>
-            <p className="text-xs text-[#9ca3af]">Manager</p>
-          </div>
+      <div className="mt-auto flex flex-col items-center gap-3">
+        <div
+          className="flex h-8 w-8 items-center justify-center rounded-full bg-slate-600 text-xs font-medium text-white"
+          title={session?.name ?? "Staff"}
+        >
+          {getInitials(session?.name ?? "AD")}
         </div>
         <button
           type="button"
           onClick={handleLogout}
-          className="mt-4 text-xs text-[#9ca3af] transition-colors hover:text-white"
+          title="Logout"
+          className="flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 transition-colors hover:bg-slate-700 hover:text-white"
         >
-          Logout
+          <LogOut className="h-4 w-4" />
         </button>
       </div>
     </aside>

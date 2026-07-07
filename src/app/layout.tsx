@@ -3,23 +3,21 @@ import { Geist } from "next/font/google";
 import "./globals.css";
 
 const geist = Geist({
-  variable: "--font-geist",
+  variable: "--font-geist-sans",
   subsets: ["latin"],
 });
 
 export const metadata: Metadata = {
-  title: "POS System",
-  description: "Point of Sale system for F&B and Retail businesses",
+  title: "PharmaPOS",
+  description: "Pharmacy Point of Sale System",
 };
 
 export default function RootLayout({
   children,
-}: Readonly<{
-  children: React.ReactNode;
-}>) {
+}: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="en" className={`${geist.variable} h-full antialiased`}>
-      <body className="min-h-full flex flex-col font-sans">{children}</body>
+    <html lang="en" className={`${geist.variable} h-full`}>
+      <body className="min-h-full antialiased">{children}</body>
     </html>
   );
 }

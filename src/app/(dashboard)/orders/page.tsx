@@ -1,278 +1,227 @@
 "use client";
 
 import { Fragment, useCallback, useEffect, useMemo, useState } from "react";
+import { ChevronDown, ChevronRight, Inbox, Loader2, Search } from "lucide-react";
+import { ErrorBanner } from "@/components/ErrorBanner";
+import { supabase } from "@/lib/supabase";
 import {
-  ChevronDown,
-  ChevronRight,
-  Loader2,
-  Search,
-} from "lucide-react";
-import {
-  formatOrderDateTime,
-  formatOrderId,
+  formatDateTime,
   formatRM,
   getPaymentDotClass,
   getPaymentLabel,
-} from "@/lib/order-utils";
-import { supabase } from "@/lib/supabase";
-import type { OrderItemRow, OrderRow } from "@/types/database";
+} from "@/lib/utils";
+import type { Member, Order, OrderItem } from "@/types/database";
 
-type OrderWithItems = OrderRow & {
-  items: OrderItemRow[];
-};
-
-function formatItemsSummary(items: OrderItemRow[]) {
-  return items
-    .map((item) => `${item.product_name} x${item.quantity}`)
-    .join(", ");
-}
-
-function PaymentIndicator({ method }: { method: string }) {
+function getOrderSavings(order: Order) {
   return (
-    <span className="inline-flex items-center gap-2 text-[#6b7280]">
-      <span
-        className={`h-2 w-2 rounded-full ${getPaymentDotClass(method)}`}
-      />
-      {getPaymentLabel(method)}
-    </span>
+    Number(order.discount_amount ?? 0) +
+    Number(order.voucher_discount ?? 0) +
+    Number(order.points_discount ?? 0)
   );
 }
 
 export default function OrdersPage() {
-  const [orders, setOrders] = useState<OrderWithItems[]>([]);
+  const [orders, setOrders] = useState<Order[]>([]);
+  const [members, setMembers] = useState<Member[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState("");
-  const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [dateFrom, setDateFrom] = useState("");
+  const [dateTo, setDateTo] = useState("");
+  const [expanded, setExpanded] = useState<string | null>(null);
+  const [orderItems, setOrderItems] = useState<Record<string, OrderItem[]>>({});
+  const [itemsLoading, setItemsLoading] = useState<string | null>(null);
 
-  const fetchOrders = useCallback(async () => {
+  const fetchData = useCallback(async () => {
     setLoading(true);
     setError(null);
-
-    const [ordersResult, itemsResult] = await Promise.all([
-      supabase.from("orders").select("*").order("created_at", { ascending: false }),
-      supabase.from("order_items").select("*"),
+    const [ordersRes, membersRes] = await Promise.all([
+      supabase.from("orders").select("*, members(name)").order("created_at", { ascending: false }),
+      supabase.from("members").select("id, name"),
     ]);
-
-    if (ordersResult.error) {
-      setError(ordersResult.error.message);
-      setOrders([]);
-      setLoading(false);
-      return;
-    }
-
-    if (itemsResult.error) {
-      setError(itemsResult.error.message);
-      setOrders([]);
-      setLoading(false);
-      return;
-    }
-
-    const itemsByOrder = (itemsResult.data ?? []).reduce<
-      Record<string, OrderItemRow[]>
-    >((acc, item) => {
-      if (!acc[item.order_id]) acc[item.order_id] = [];
-      acc[item.order_id].push(item);
-      return acc;
-    }, {});
-
-    const merged = (ordersResult.data ?? []).map((order) => ({
-      ...order,
-      discount: Number(order.discount ?? 0),
-      payment_method: order.payment_method ?? "cash",
-      items: itemsByOrder[order.id] ?? [],
-    }));
-
-    setOrders(merged);
+    if (ordersRes.error) setError(ordersRes.error.message);
+    else if (membersRes.error) setError(membersRes.error.message);
+    setOrders((ordersRes.data ?? []) as Order[]);
+    setMembers((membersRes.data ?? []) as Member[]);
     setLoading(false);
   }, []);
 
-  useEffect(() => {
-    fetchOrders();
-  }, [fetchOrders]);
+  useEffect(() => { fetchData(); }, [fetchData]);
 
-  const filteredOrders = useMemo(() => {
-    const query = search.toLowerCase().trim();
-    if (!query) return orders;
+  const memberMap = useMemo(() => {
+    const m: Record<string, string> = {};
+    members.forEach((mb) => { m[mb.id] = mb.name; });
+    return m;
+  }, [members]);
 
-    return orders.filter((order) => {
-      const idMatch = order.id.toLowerCase().includes(query);
-      const dateMatch = formatOrderDateTime(order.created_at)
-        .toLowerCase()
-        .includes(query);
-      return idMatch || dateMatch;
+  const filtered = useMemo(() => {
+    const q = search.toLowerCase().trim();
+    return orders.filter((o) => {
+      const memberName = o.member_id
+        ? memberMap[o.member_id] ?? (o.members as { name?: string } | null)?.name ?? ""
+        : "walk-in";
+      const matchesSearch =
+        !q ||
+        o.order_number.toLowerCase().includes(q) ||
+        memberName.toLowerCase().includes(q);
+      const created = new Date(o.created_at);
+      const matchesFrom = !dateFrom || created >= new Date(dateFrom);
+      const matchesTo = !dateTo || created <= new Date(`${dateTo}T23:59:59`);
+      return matchesSearch && matchesFrom && matchesTo;
     });
-  }, [orders, search]);
+  }, [orders, search, dateFrom, dateTo, memberMap]);
 
-  const totalRevenue = useMemo(
-    () => orders.reduce((sum, o) => sum + Number(o.total), 0),
-    [orders]
-  );
+  const summary = useMemo(() => ({
+    count: filtered.length,
+    revenue: filtered.reduce((s, o) => s + Number(o.total), 0),
+    savings: filtered.reduce((s, o) => s + getOrderSavings(o), 0),
+  }), [filtered]);
 
-  function toggleExpand(id: string) {
-    setExpandedId((prev) => (prev === id ? null : id));
+  async function toggleExpand(orderId: string) {
+    if (expanded === orderId) {
+      setExpanded(null);
+      return;
+    }
+    setExpanded(orderId);
+    if (!orderItems[orderId]) {
+      setItemsLoading(orderId);
+      const { data } = await supabase.from("order_items").select("*").eq("order_id", orderId);
+      setOrderItems((prev) => ({ ...prev, [orderId]: data ?? [] }));
+      setItemsLoading(null);
+    }
   }
 
   return (
-    <div className="flex h-full flex-col overflow-auto">
-      <div className="p-8">
-        {error && (
-          <div className="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">
-            {error}
-          </div>
-        )}
+    <div className="h-full overflow-auto p-6">
+      <div className="mb-6">
+        <h2 className="text-xl font-semibold text-[#0f172a]">Orders</h2>
+        <p className="mt-0.5 text-sm text-[#64748b]">View and search transaction history</p>
+      </div>
 
-        {!loading && (
-          <p className="mb-6 text-sm text-[#6b7280]">
-            {orders.length} orders · {formatRM(totalRevenue)} total revenue
-          </p>
-        )}
+      {error && <ErrorBanner error={error} onRetry={() => void fetchData()} />}
 
-        <div className="relative mb-6">
-          <Search className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-[#9ca3af]" />
-          <input
-            type="text"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search by order ID or date..."
-            disabled={loading}
-            className="input-field h-11 pl-11 disabled:opacity-60"
-          />
+      <div className="mb-4 grid gap-3 sm:grid-cols-3">
+        <div className="card border-l-4 border-l-blue-500">
+          <p className="text-2xl font-bold text-[#0f172a]">{summary.count}</p>
+          <p className="mt-1 text-xs text-[#64748b]">Orders</p>
         </div>
+        <div className="card border-l-4 border-l-emerald-500">
+          <p className="text-2xl font-bold text-[#0f172a]">{formatRM(summary.revenue)}</p>
+          <p className="mt-1 text-xs text-[#64748b]">Revenue</p>
+        </div>
+        <div className="card border-l-4 border-l-amber-500">
+          <p className="text-2xl font-bold text-[#0f172a]">{formatRM(summary.savings)}</p>
+          <p className="mt-1 text-xs text-[#64748b]">Member Savings</p>
+        </div>
+      </div>
 
+      <div className="mb-4 flex flex-col gap-3 lg:flex-row">
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#94a3b8]" />
+          <input type="text" placeholder="Search order # or member..." value={search} onChange={(e) => setSearch(e.target.value)} className="input-field pl-9" />
+        </div>
+        <input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} className="input-field w-full lg:w-40" />
+        <input type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)} className="input-field w-full lg:w-40" />
+      </div>
+
+      <div className="card overflow-hidden p-0">
         {loading ? (
-          <div className="flex items-center justify-center py-24">
-            <Loader2 className="h-6 w-6 animate-spin text-gray-400" />
+          <div className="flex justify-center py-16"><Loader2 className="h-6 w-6 animate-spin text-[#64748b]" /></div>
+        ) : filtered.length === 0 ? (
+          <div className="flex flex-col items-center py-16 text-[#64748b]">
+            <Inbox className="mb-2 h-8 w-8 text-[#cbd5e1]" />
+            <p className="text-sm">No orders found</p>
           </div>
         ) : (
-          <div className="card overflow-hidden">
-            <div className="max-h-[calc(100vh-280px)] overflow-auto">
-              <table className="w-full text-left text-sm">
-                <thead className="sticky top-0 z-10">
-                  <tr className="table-head border-b border-[#f0f0f0]">
-                    <th className="w-8 px-4 py-3" />
-                    <th className="px-4 py-3 text-xs font-medium uppercase tracking-wide text-[#6b7280]">
-                      Order ID
-                    </th>
-                    <th className="px-4 py-3 text-xs font-medium uppercase tracking-wide text-[#6b7280]">
-                      Date & Time
-                    </th>
-                    <th className="px-4 py-3 text-xs font-medium uppercase tracking-wide text-[#6b7280]">
-                      Items
-                    </th>
-                    <th className="px-4 py-3 text-xs font-medium uppercase tracking-wide text-[#6b7280]">
-                      Payment
-                    </th>
-                    <th className="px-4 py-3 text-xs font-medium uppercase tracking-wide text-[#6b7280]">
-                      Total
-                    </th>
-                    <th className="px-4 py-3 text-xs font-medium uppercase tracking-wide text-[#6b7280]">
-                      Status
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-[#f0f0f0]">
-                  {filteredOrders.map((order) => {
-                    const isExpanded = expandedId === order.id;
-                    return (
-                      <Fragment key={order.id}>
-                        <tr
-                          onClick={() => toggleExpand(order.id)}
-                          className="table-row cursor-pointer"
-                        >
-                          <td className="px-4 text-[#9ca3af]">
-                            {isExpanded ? (
-                              <ChevronDown className="h-4 w-4" />
-                            ) : (
-                              <ChevronRight className="h-4 w-4" />
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="table-head">
+                <th className="w-8 px-2 py-2" />
+                <th className="px-4 py-2 text-left text-xs font-medium text-[#64748b]">Order #</th>
+                <th className="px-4 py-2 text-left text-xs font-medium text-[#64748b]">Date</th>
+                <th className="px-4 py-2 text-left text-xs font-medium text-[#64748b]">Member</th>
+                <th className="px-4 py-2 text-left text-xs font-medium text-[#64748b]">Total</th>
+                <th className="px-4 py-2 text-left text-xs font-medium text-[#64748b]">Payment</th>
+                <th className="px-4 py-2 text-left text-xs font-medium text-[#64748b]">Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filtered.map((o) => {
+                const isOpen = expanded === o.id;
+                const items = orderItems[o.id] ?? [];
+                return (
+                  <Fragment key={o.id}>
+                    <tr className="table-row cursor-pointer" onClick={() => toggleExpand(o.id)}>
+                      <td className="px-2 text-[#64748b]">
+                        {isOpen ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+                      </td>
+                      <td className="px-4 font-medium text-[#0f172a]">{o.order_number}</td>
+                      <td className="px-4 text-[#64748b]">{formatDateTime(o.created_at)}</td>
+                      <td className="px-4 text-[#0f172a]">
+                        {o.member_id ? memberMap[o.member_id] ?? "Member" : "Walk-in"}
+                      </td>
+                      <td className="px-4 font-medium text-[#0f172a]">{formatRM(Number(o.total))}</td>
+                      <td className="px-4">
+                        <span className="inline-flex items-center gap-1.5 text-[#64748b]">
+                          <span className={`h-2 w-2 rounded-full ${getPaymentDotClass(o.payment_method)}`} />
+                          {getPaymentLabel(o.payment_method)}
+                        </span>
+                      </td>
+                      <td className="px-4 capitalize text-[#64748b]">{o.status}</td>
+                    </tr>
+                    {isOpen && (
+                      <tr className="bg-[#f8fafc]">
+                        <td colSpan={7} className="px-6 py-3">
+                          {itemsLoading === o.id ? (
+                            <div className="flex justify-center py-4"><Loader2 className="h-5 w-5 animate-spin text-[#64748b]" /></div>
+                          ) : items.length === 0 ? (
+                            <p className="text-sm text-[#64748b]">No line items</p>
+                          ) : (
+                            <table className="w-full text-xs">
+                              <thead>
+                                <tr>
+                                  <th className="py-1 text-left text-[#64748b]">Product</th>
+                                  <th className="py-1 text-left text-[#64748b]">Qty</th>
+                                  <th className="py-1 text-left text-[#64748b]">Unit Price</th>
+                                  <th className="py-1 text-left text-[#64748b]">Line Total</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {items.map((item) => (
+                                  <tr key={item.id}>
+                                    <td className="py-1 text-[#0f172a]">
+                                      {item.product_name}
+                                      {item.free_quantity > 0 && (
+                                        <span className="ml-2 text-emerald-600">(Free)</span>
+                                      )}
+                                    </td>
+                                    <td className="py-1 text-[#64748b]">{item.quantity}</td>
+                                    <td className="py-1 text-[#64748b]">{formatRM(Number(item.sold_price))}</td>
+                                    <td className="py-1 text-[#0f172a]">
+                                      {formatRM(Number(item.sold_price) * Number(item.quantity))}
+                                    </td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          )}
+                          <div className="mt-2 flex gap-4 text-xs text-[#64748b]">
+                            <span>Subtotal: {formatRM(Number(o.subtotal))}</span>
+                            <span>Tax: {formatRM(Number(o.tax))}</span>
+                            {getOrderSavings(o) > 0 && (
+                              <span className="text-emerald-600">
+                                Savings: {formatRM(getOrderSavings(o))}
+                              </span>
                             )}
-                          </td>
-                          <td className="px-4 font-mono text-[#0f0f0f]">
-                            {formatOrderId(order.id)}
-                          </td>
-                          <td className="px-4 text-[#6b7280]">
-                            {formatOrderDateTime(order.created_at)}
-                          </td>
-                          <td className="max-w-xs truncate px-4 text-[#6b7280]">
-                            {formatItemsSummary(order.items) || "—"}
-                          </td>
-                          <td className="px-4">
-                            <PaymentIndicator
-                              method={order.payment_method}
-                            />
-                          </td>
-                          <td className="px-4 font-medium text-[#0f0f0f]">
-                            {formatRM(Number(order.total))}
-                          </td>
-                          <td className="px-4 text-[#6b7280]">Completed</td>
-                        </tr>
-                        {isExpanded && (
-                          <tr className="bg-[#fafafa]">
-                            <td colSpan={7} className="px-8 py-4">
-                              <div className="expand-content ml-6 border-l-2 border-[#f0f0f0] pl-6">
-                                <p className="mb-3 text-xs font-medium uppercase tracking-wide text-[#9ca3af]">
-                                  Order breakdown
-                                </p>
-                                <ul className="space-y-2 text-sm">
-                                  {order.items.map((item) => (
-                                    <li
-                                      key={item.id}
-                                      className="flex justify-between text-[#6b7280]"
-                                    >
-                                      <span>
-                                        {item.product_name} × {item.quantity}
-                                      </span>
-                                      <span className="font-medium text-[#0f0f0f]">
-                                        {formatRM(
-                                          Number(item.price) * item.quantity
-                                        )}
-                                      </span>
-                                    </li>
-                                  ))}
-                                </ul>
-                                <div className="mt-3 space-y-1 border-t border-[#f0f0f0] pt-3 text-sm">
-                                  <div className="flex justify-between text-[#6b7280]">
-                                    <span>Subtotal</span>
-                                    <span>
-                                      {formatRM(Number(order.subtotal))}
-                                    </span>
-                                  </div>
-                                  {Number(order.discount) > 0 && (
-                                    <div className="flex justify-between text-[#6b7280]">
-                                      <span>Discount</span>
-                                      <span>
-                                        -{formatRM(Number(order.discount))}
-                                      </span>
-                                    </div>
-                                  )}
-                                  <div className="flex justify-between text-[#6b7280]">
-                                    <span>Tax</span>
-                                    <span>{formatRM(Number(order.tax))}</span>
-                                  </div>
-                                  <div className="flex justify-between font-semibold text-[#0f0f0f]">
-                                    <span>Total</span>
-                                    <span>{formatRM(Number(order.total))}</span>
-                                  </div>
-                                </div>
-                              </div>
-                            </td>
-                          </tr>
-                        )}
-                      </Fragment>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-
-            {filteredOrders.length === 0 && (
-              <p className="py-12 text-center text-sm text-[#6b7280]">
-                {orders.length === 0
-                  ? "No orders yet. Complete a sale on the POS page."
-                  : "No orders match your search."}
-              </p>
-            )}
-          </div>
+                          </div>
+                        </td>
+                      </tr>
+                    )}
+                  </Fragment>
+                );
+              })}
+            </tbody>
+          </table>
         )}
       </div>
     </div>
