@@ -81,7 +81,7 @@ export default function PromotionsPage() {
         discount_type: voucherForm.discount_type,
         discount_value: parseFloat(voucherForm.discount_value),
         max_uses: voucherForm.max_uses ? parseInt(voucherForm.max_uses, 10) : null,
-        expiry_date: voucherForm.expiry_date || null, uses_count: 0,
+        end_date: voucherForm.expiry_date || null, uses_count: 0,
       };
     } else return;
 
@@ -160,7 +160,7 @@ export default function PromotionsPage() {
                   <td className="px-4 text-[#64748b]">
                     {p.type === "b2f1" && `Buy ${p.min_qty} get ${p.free_qty} free — ${productMap[p.product_id ?? ""] ?? "—"}`}
                     {p.type === "pwp" && `${productMap[p.product_id ?? ""] ?? "—"} → ${productMap[p.reward_product_id ?? ""] ?? "—"} at ${formatRM(Number(p.reward_price))}`}
-                    {p.type === "voucher" && `${p.voucher_code} — ${p.discount_type === "percent" ? `${p.discount_value}%` : formatRM(Number(p.discount_value))}${p.expiry_date ? ` (exp ${formatDate(p.expiry_date)})` : ""}`}
+                    {p.type === "voucher" && `${p.voucher_code} — ${p.discount_type === "percent" ? `${p.discount_value}%` : formatRM(Number(p.discount_value))}${p.end_date ? ` (exp ${formatDate(p.end_date)})` : ""}`}
                   </td>
                   <td className="px-4 capitalize text-[#64748b]">{p.applies_to}</td>
                   <td className="px-4">

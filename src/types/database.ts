@@ -54,6 +54,7 @@ export interface Product {
   gold_price: number | null;
   platinum_price: number | null;
   stock: number;
+  low_stock_threshold: number | null;
   is_active: boolean;
   image_url: string | null;
   requires_prescription: boolean;

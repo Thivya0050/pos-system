@@ -39,3 +39,8 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# screenshot automation raw videos (commit PNGs/GIFs only)
+/docs/screenshots/.raw-videos/
+/docs/screenshots/*.webm
+/docs/screenshots/*.mp4
