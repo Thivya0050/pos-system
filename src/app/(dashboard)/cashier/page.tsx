@@ -13,6 +13,11 @@ import {
 import { getSession } from "@/lib/auth";
 import { ErrorBanner } from "@/components/ErrorBanner";
 import { Modal, ModalCancelButton } from "@/components/Modal";
+import {
+  calculateVoucherDiscount,
+  getMemberVoucherRedemptionCount,
+  validateVoucherEligibility,
+} from "@/lib/voucher-validation";
 import { getSettings } from "@/lib/settings";
 import { supabase } from "@/lib/supabase";
 import {
@@ -459,7 +464,6 @@ export default function CashierPage() {
       return;
     }
 
-    const today = new Date().toISOString().slice(0, 10);
     const { data: promo, error: fetchErr } = await supabase
       .from("promotions")
       .select("*")
@@ -469,33 +473,28 @@ export default function CashierPage() {
       .single();
 
     if (fetchErr || !promo) {
-      setVoucherError("Invalid or expired voucher code");
+      setVoucherError("Voucher code not found");
       return;
     }
 
     const voucher = promo as Promotion;
+    const memberRedemptionCount = member
+      ? await getMemberVoucherRedemptionCount(member.id, voucher.id)
+      : 0;
 
-    if (voucher.end_date && voucher.end_date < today) {
-      setVoucherError("Invalid or expired voucher code");
+    const validation = validateVoucherEligibility({
+      voucher,
+      subtotal,
+      member,
+      memberRedemptionCount,
+    });
+
+    if (!validation.ok) {
+      setVoucherError(validation.message);
       return;
     }
 
-    if (
-      voucher.max_uses != null &&
-      (voucher.uses_count ?? 0) >= voucher.max_uses
-    ) {
-      setVoucherError("Invalid or expired voucher code");
-      return;
-    }
-
-    let discount = 0;
-    if (voucher.discount_type === "fixed") {
-      discount = Number(voucher.discount_value);
-    } else if (voucher.discount_type === "percent") {
-      discount = subtotal * (Number(voucher.discount_value) / 100);
-    }
-
-    setVoucherDiscount(Math.min(discount, subtotal));
+    setVoucherDiscount(calculateVoucherDiscount(voucher, subtotal));
     setAppliedVoucher(voucher);
     setVoucherError("");
   }
@@ -517,18 +516,7 @@ export default function CashierPage() {
 
   useEffect(() => {
     if (!appliedVoucher) return;
-    if (appliedVoucher.discount_type === "fixed") {
-      setVoucherDiscount(
-        Math.min(Number(appliedVoucher.discount_value), subtotal)
-      );
-    } else if (appliedVoucher.discount_type === "percent") {
-      setVoucherDiscount(
-        Math.min(
-          subtotal * (Number(appliedVoucher.discount_value) / 100),
-          subtotal
-        )
-      );
-    }
+    setVoucherDiscount(calculateVoucherDiscount(appliedVoucher, subtotal));
   }, [subtotal, appliedVoucher]);
 
   useEffect(() => {
@@ -658,6 +646,16 @@ export default function CashierPage() {
         .from("promotions")
         .update({ uses_count: (appliedVoucher.uses_count ?? 0) + 1 })
         .eq("id", appliedVoucher.id);
+
+      if (member) {
+        await supabase.from("member_vouchers").insert({
+          member_id: member.id,
+          promotion_id: appliedVoucher.id,
+          code: appliedVoucher.voucher_code ?? "",
+          is_used: true,
+          used_at: new Date().toISOString(),
+        });
+      }
     }
 
     setPaymentOpen(false);

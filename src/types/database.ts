@@ -75,7 +75,9 @@ export interface Promotion {
   voucher_code: string | null;
   discount_type: VoucherType | null;
   discount_value: number | null;
+  min_spend: number | null;
   max_uses: number | null;
+  max_uses_per_member: number | null;
   uses_count: number | null;
   start_date: string | null;
   end_date: string | null;
