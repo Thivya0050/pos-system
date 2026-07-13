@@ -1,89 +1,295 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   Building2,
   DollarSign,
   Inbox,
   Loader2,
   MapPin,
+  Pencil,
   Phone,
   Plus,
   ShoppingCart,
+  ToggleLeft,
+  ToggleRight,
+  Trash2,
   Users,
-  X,
 } from "lucide-react";
+import { Modal, ModalCancelButton, ModalField, ModalForm } from "@/components/Modal";
 import { supabase } from "@/lib/supabase";
-import { ModalCancelButton, ModalField, ModalForm } from "@/components/Modal";
-import { formatRM } from "@/lib/utils";
+import { formatRM, getTodayStart } from "@/lib/utils";
 import type { Branch } from "@/types/database";
 
 type BranchStats = {
-  orderCount: number;
-  revenue: number;
+  todayRevenue: number;
+  todayOrders: number;
   staffCount: number;
 };
 
+type ModalMode = "create" | "edit";
+type DeleteMode = "delete" | "deactivate";
+
+const emptyForm = { name: "", address: "", phone: "" };
+
 export default function BranchesPage() {
   const [branches, setBranches] = useState<Branch[]>([]);
+  const [branchStats, setBranchStats] = useState<Record<string, BranchStats>>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
+  const [modalMode, setModalMode] = useState<ModalMode>("create");
+  const [editingBranch, setEditingBranch] = useState<Branch | null>(null);
   const [saving, setSaving] = useState(false);
-  const [selected, setSelected] = useState<Branch | null>(null);
-  const [stats, setStats] = useState<BranchStats | null>(null);
-  const [statsLoading, setStatsLoading] = useState(false);
-  const [form, setForm] = useState({ name: "", address: "", phone: "" });
+  const [modalError, setModalError] = useState<string | null>(null);
+  const [form, setForm] = useState(emptyForm);
+  const [deleteConfirm, setDeleteConfirm] = useState<Branch | null>(null);
+  const [deleteMode, setDeleteMode] = useState<DeleteMode>("delete");
+  const [deleteMessage, setDeleteMessage] = useState("");
+  const [deleting, setDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
+
+  const activeBranchCount = useMemo(
+    () => branches.filter((b) => b.is_active).length,
+    [branches]
+  );
 
   const fetchBranches = useCallback(async () => {
     setLoading(true);
     setError(null);
-    const { data, error: err } = await supabase.from("branches").select("*").order("name");
-    if (err) {
-      setError(err.message);
+
+    const todayStart = getTodayStart().toISOString();
+    const [branchesRes, ordersRes, staffRes] = await Promise.all([
+      supabase.from("branches").select("*").order("name"),
+      supabase
+        .from("orders")
+        .select("branch_id, total")
+        .eq("status", "completed")
+        .gte("created_at", todayStart),
+      supabase.from("staff").select("branch_id"),
+    ]);
+
+    if (branchesRes.error) {
+      setError(branchesRes.error.message);
       setBranches([]);
-    } else {
-      setBranches(data ?? []);
+      setBranchStats({});
+      setLoading(false);
+      return;
     }
+
+    const nextBranches = (branchesRes.data ?? []) as Branch[];
+    setBranches(nextBranches);
+
+    const statsMap: Record<string, BranchStats> = {};
+    nextBranches.forEach((branch) => {
+      statsMap[branch.id] = { todayRevenue: 0, todayOrders: 0, staffCount: 0 };
+    });
+
+    (ordersRes.data ?? []).forEach((order) => {
+      const branchId = (order as { branch_id: string | null }).branch_id;
+      if (!branchId || !statsMap[branchId]) return;
+      statsMap[branchId].todayOrders += 1;
+      statsMap[branchId].todayRevenue += Number(
+        (order as { total: number }).total
+      );
+    });
+
+    (staffRes.data ?? []).forEach((row) => {
+      const branchId = (row as { branch_id: string }).branch_id;
+      if (!branchId || !statsMap[branchId]) return;
+      statsMap[branchId].staffCount += 1;
+    });
+
+    setBranchStats(statsMap);
     setLoading(false);
   }, []);
 
-  useEffect(() => { fetchBranches(); }, [fetchBranches]);
+  useEffect(() => {
+    void fetchBranches();
+  }, [fetchBranches]);
 
-  async function openBranch(branch: Branch) {
-    setSelected(branch);
-    setStatsLoading(true);
-    const [ordersRes, staffRes] = await Promise.all([
-      supabase.from("orders").select("total").eq("branch_id", branch.id).eq("status", "completed"),
-      supabase.from("staff").select("id", { count: "exact", head: true }).eq("branch_id", branch.id),
-    ]);
-    const orders = (ordersRes.data ?? []) as { total: number }[];
-    setStats({
-      orderCount: orders.length,
-      revenue: orders.reduce((s, o) => s + Number(o.total), 0),
-      staffCount: staffRes.count ?? 0,
-    });
-    setStatsLoading(false);
+  function openCreateModal() {
+    setModalMode("create");
+    setEditingBranch(null);
+    setModalError(null);
+    setForm(emptyForm);
+    setModalOpen(true);
   }
 
-  async function handleAdd(e: React.FormEvent) {
+  function openEditModal(branch: Branch) {
+    setModalMode("edit");
+    setEditingBranch(branch);
+    setModalError(null);
+    setForm({
+      name: branch.name,
+      address: branch.address ?? "",
+      phone: branch.phone ?? "",
+    });
+    setModalOpen(true);
+  }
+
+  function closeModal() {
+    setModalOpen(false);
+    setEditingBranch(null);
+    setModalError(null);
+  }
+
+  async function getBranchAssociationCounts(branchId: string) {
+    const [ordersRes, staffRes, membersRes] = await Promise.all([
+      supabase
+        .from("orders")
+        .select("*", { count: "exact", head: true })
+        .eq("branch_id", branchId),
+      supabase
+        .from("staff")
+        .select("*", { count: "exact", head: true })
+        .eq("branch_id", branchId),
+      supabase
+        .from("members")
+        .select("*", { count: "exact", head: true })
+        .eq("branch_id", branchId),
+    ]);
+
+    return {
+      orders: ordersRes.count ?? 0,
+      staff: staffRes.count ?? 0,
+      members: membersRes.count ?? 0,
+    };
+  }
+
+  function isLastActiveBranch(branch: Branch) {
+    return branch.is_active && activeBranchCount <= 1;
+  }
+
+  async function openDeleteConfirm(branch: Branch) {
+    setDeleteError(null);
+
+    if (isLastActiveBranch(branch)) {
+      setDeleteMode("deactivate");
+      setDeleteMessage(
+        "This is the only active branch. At least one active branch is required for Cashier and Dashboard to function."
+      );
+      setDeleteConfirm(branch);
+      return;
+    }
+
+    const counts = await getBranchAssociationCounts(branch.id);
+    const totalLinked = counts.orders + counts.staff + counts.members;
+
+    if (totalLinked > 0) {
+      const parts: string[] = [];
+      if (counts.orders > 0) parts.push(`${counts.orders} order${counts.orders === 1 ? "" : "s"}`);
+      if (counts.staff > 0) parts.push(`${counts.staff} staff`);
+      if (counts.members > 0) parts.push(`${counts.members} member${counts.members === 1 ? "" : "s"}`);
+
+      setDeleteMode("deactivate");
+      setDeleteMessage(
+        `This branch has ${parts.join(", ")} on record — deactivate instead of delete to preserve history.`
+      );
+    } else {
+      setDeleteMode("delete");
+      setDeleteMessage(
+        `Are you sure you want to delete ${branch.name}? This action cannot be undone.`
+      );
+    }
+
+    setDeleteConfirm(branch);
+  }
+
+  async function handleDeleteOrDeactivate() {
+    if (!deleteConfirm) return;
+
+    if (isLastActiveBranch(deleteConfirm) && deleteMode === "deactivate") {
+      setDeleteError(
+        "Cannot deactivate the only active branch. Add or activate another branch first."
+      );
+      return;
+    }
+
+    setDeleting(true);
+    setDeleteError(null);
+
+    if (deleteMode === "deactivate") {
+      const { error: err } = await supabase
+        .from("branches")
+        .update({ is_active: false } as never)
+        .eq("id", deleteConfirm.id);
+
+      if (err) setDeleteError(err.message);
+      else {
+        setDeleteConfirm(null);
+        await fetchBranches();
+      }
+    } else {
+      const { error: err } = await supabase
+        .from("branches")
+        .delete()
+        .eq("id", deleteConfirm.id);
+
+      if (err) {
+        setDeleteError(err.message);
+        setDeleteMode("deactivate");
+        setDeleteMessage(
+          "Delete was blocked by linked records. You can deactivate this branch instead."
+        );
+      } else {
+        setDeleteConfirm(null);
+        await fetchBranches();
+      }
+    }
+
+    setDeleting(false);
+  }
+
+  async function toggleActive(branch: Branch) {
+    if (branch.is_active && isLastActiveBranch(branch)) {
+      setError("Cannot deactivate the only active branch.");
+      return;
+    }
+
+    const { error: err } = await supabase
+      .from("branches")
+      .update({ is_active: !branch.is_active } as never)
+      .eq("id", branch.id);
+
+    if (err) setError(err.message);
+    else await fetchBranches();
+  }
+
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setSaving(true);
-    setError(null);
-    const { error: err } = await supabase.from("branches").insert([
-      {
-        name: form.name.trim(),
-        address: form.address.trim() || null,
-        phone: form.phone.trim() || null,
-        is_active: true,
-      },
-    ] as never);
-    if (err) setError(err.message);
-    else {
-      setModalOpen(false);
-      setForm({ name: "", address: "", phone: "" });
-      await fetchBranches();
+    setModalError(null);
+
+    const payload = {
+      name: form.name.trim(),
+      address: form.address.trim() || null,
+      phone: form.phone.trim() || null,
+    };
+
+    if (modalMode === "edit" && editingBranch) {
+      const { error: err } = await supabase
+        .from("branches")
+        .update(payload as never)
+        .eq("id", editingBranch.id);
+
+      if (err) setModalError(err.message);
+      else {
+        closeModal();
+        await fetchBranches();
+      }
+    } else {
+      const { error: err } = await supabase.from("branches").insert([
+        { ...payload, is_active: true },
+      ] as never);
+
+      if (err) setModalError(err.message);
+      else {
+        closeModal();
+        await fetchBranches();
+      }
     }
+
     setSaving(false);
   }
 
@@ -92,137 +298,252 @@ export default function BranchesPage() {
       <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h2 className="text-xl font-semibold text-[#0f172a]">Branches</h2>
-          <p className="mt-0.5 text-sm text-[#64748b]">Manage pharmacy locations</p>
+          <p className="mt-0.5 text-sm text-[#64748b]">
+            Manage pharmacy locations and view today&apos;s branch activity
+          </p>
         </div>
-        <button type="button" onClick={() => setModalOpen(true)} className="btn-primary inline-flex items-center gap-2 px-4 py-2 text-sm">
+        <button
+          type="button"
+          onClick={openCreateModal}
+          className="btn-primary inline-flex items-center gap-2 px-4 py-2 text-sm"
+        >
           <Plus className="h-4 w-4" />
           Add Branch
         </button>
       </div>
 
-      {error && <div className="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">{error}</div>}
+      {error && (
+        <div className="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">
+          {error}
+        </div>
+      )}
 
       {loading ? (
-        <div className="flex justify-center py-24"><Loader2 className="h-6 w-6 animate-spin text-[#64748b]" /></div>
+        <div className="flex justify-center py-24">
+          <Loader2 className="h-6 w-6 animate-spin text-[#64748b]" />
+        </div>
       ) : branches.length === 0 ? (
         <div className="card flex flex-col items-center py-16 text-[#64748b]">
-          <Inbox className="mb-2 h-8 w-8 text-[#cbd5e1]" />
-          <p className="text-sm">No branches yet</p>
+          <Inbox className="mb-3 h-10 w-10 text-[#cbd5e1]" />
+          <p className="text-base font-medium text-[#0f172a]">No branches yet</p>
+          <p className="mt-1 text-sm">Add your first branch to get started.</p>
+          <button
+            type="button"
+            onClick={openCreateModal}
+            className="btn-primary mt-4 inline-flex items-center gap-2 px-4 py-2 text-sm"
+          >
+            <Plus className="h-4 w-4" />
+            Add Branch
+          </button>
         </div>
       ) : (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {branches.map((b) => (
-            <button
-              key={b.id}
-              type="button"
-              onClick={() => openBranch(b)}
-              className="card text-left transition-shadow hover:shadow-md"
-            >
-              <div className="mb-3 flex items-center gap-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-100">
-                  <Building2 className="h-5 w-5 text-blue-600" />
+        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+          {branches.map((branch) => {
+            const stats = branchStats[branch.id] ?? {
+              todayRevenue: 0,
+              todayOrders: 0,
+              staffCount: 0,
+            };
+
+            return (
+              <div key={branch.id} className="card group p-5">
+                <div className="mb-4 flex items-start justify-between gap-3">
+                  <div className="flex min-w-0 items-center gap-3">
+                    <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-blue-100">
+                      <Building2 className="h-5 w-5 text-blue-600" />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="truncate font-semibold text-[#0f172a]">{branch.name}</p>
+                      <span
+                        className={`mt-1 inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${
+                          branch.is_active
+                            ? "bg-emerald-100 text-emerald-700"
+                            : "bg-slate-100 text-slate-600"
+                        }`}
+                      >
+                        {branch.is_active ? "Active" : "Inactive"}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="flex shrink-0 items-center gap-1">
+                    <button
+                      type="button"
+                      onClick={() => toggleActive(branch)}
+                      className="rounded p-1.5 text-[#64748b] hover:bg-[#f1f5f9]"
+                      title={branch.is_active ? "Deactivate branch" : "Activate branch"}
+                    >
+                      {branch.is_active ? (
+                        <ToggleRight className="h-5 w-5 text-emerald-500" />
+                      ) : (
+                        <ToggleLeft className="h-5 w-5" />
+                      )}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => openEditModal(branch)}
+                      className="rounded p-1.5 text-[#64748b] opacity-0 transition-opacity hover:bg-[#f1f5f9] hover:text-[#2563eb] group-hover:opacity-100"
+                      title="Edit branch"
+                    >
+                      <Pencil className="h-4 w-4" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => void openDeleteConfirm(branch)}
+                      className="rounded p-1.5 text-[#64748b] opacity-0 transition-opacity hover:bg-red-50 hover:text-red-600 group-hover:opacity-100"
+                      title="Delete branch"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  </div>
                 </div>
-                <div>
-                  <p className="font-semibold text-[#0f172a]">{b.name}</p>
-                  <span className={`text-xs font-medium ${b.is_active ? "text-emerald-600" : "text-[#64748b]"}`}>
-                    {b.is_active ? "Active" : "Inactive"}
-                  </span>
+
+                {(branch.address || branch.phone) && (
+                  <div className="mb-4 space-y-1.5 text-sm text-[#64748b]">
+                    {branch.address && (
+                      <p className="flex items-start gap-2">
+                        <MapPin className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+                        <span>{branch.address}</span>
+                      </p>
+                    )}
+                    {branch.phone && (
+                      <p className="flex items-center gap-2">
+                        <Phone className="h-3.5 w-3.5 shrink-0" />
+                        <span>{branch.phone}</span>
+                      </p>
+                    )}
+                  </div>
+                )}
+
+                <div className="grid grid-cols-3 gap-2 border-t border-[#e2e8f0] pt-4">
+                  <div className="rounded-lg bg-[#f8fafc] px-3 py-2">
+                    <div className="mb-1 flex items-center gap-1 text-[#64748b]">
+                      <DollarSign className="h-3.5 w-3.5" />
+                      <span className="text-[10px] font-medium uppercase tracking-wide">
+                        Today
+                      </span>
+                    </div>
+                    <p className="text-sm font-semibold text-[#0f172a]">
+                      {formatRM(stats.todayRevenue)}
+                    </p>
+                  </div>
+                  <div className="rounded-lg bg-[#f8fafc] px-3 py-2">
+                    <div className="mb-1 flex items-center gap-1 text-[#64748b]">
+                      <ShoppingCart className="h-3.5 w-3.5" />
+                      <span className="text-[10px] font-medium uppercase tracking-wide">
+                        Orders
+                      </span>
+                    </div>
+                    <p className="text-sm font-semibold text-[#0f172a]">
+                      {stats.todayOrders}
+                    </p>
+                  </div>
+                  <div className="rounded-lg bg-[#f8fafc] px-3 py-2">
+                    <div className="mb-1 flex items-center gap-1 text-[#64748b]">
+                      <Users className="h-3.5 w-3.5" />
+                      <span className="text-[10px] font-medium uppercase tracking-wide">
+                        Staff
+                      </span>
+                    </div>
+                    <p className="text-sm font-semibold text-[#0f172a]">
+                      {stats.staffCount}
+                    </p>
+                  </div>
                 </div>
               </div>
-              {b.address && (
-                <p className="mb-1 flex items-start gap-2 text-sm text-[#64748b]">
-                  <MapPin className="mt-0.5 h-3.5 w-3.5 shrink-0" />
-                  {b.address}
-                </p>
-              )}
-              {b.phone && (
-                <p className="flex items-center gap-2 text-sm text-[#64748b]">
-                  <Phone className="h-3.5 w-3.5 shrink-0" />
-                  {b.phone}
-                </p>
-              )}
-            </button>
-          ))}
+            );
+          })}
         </div>
       )}
 
       <ModalForm
         open={modalOpen}
-        onClose={() => setModalOpen(false)}
-        title="Add Branch"
-        onSubmit={handleAdd}
+        onClose={closeModal}
+        title={modalMode === "edit" ? "Edit Branch" : "Add Branch"}
+        onSubmit={handleSubmit}
         footer={
           <>
-            <ModalCancelButton onClick={() => setModalOpen(false)} />
+            <ModalCancelButton onClick={closeModal} />
             <button type="submit" disabled={saving} className="btn-primary px-4 py-2 text-sm">
-              {saving ? <Loader2 className="mx-auto h-4 w-4 animate-spin" /> : "Add Branch"}
+              {saving ? (
+                <Loader2 className="mx-auto h-4 w-4 animate-spin" />
+              ) : modalMode === "edit" ? (
+                "Save changes"
+              ) : (
+                "Add Branch"
+              )}
             </button>
           </>
         }
       >
+        {modalError && (
+          <div className="mb-4 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-600">
+            {modalError}
+          </div>
+        )}
         <ModalField label="Name *">
-          <input required className="input-field" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
+          <input
+            required
+            className="input-field"
+            value={form.name}
+            onChange={(e) => setForm({ ...form, name: e.target.value })}
+          />
         </ModalField>
         <ModalField label="Address">
-          <input className="input-field" value={form.address} onChange={(e) => setForm({ ...form, address: e.target.value })} />
+          <input
+            className="input-field"
+            value={form.address}
+            onChange={(e) => setForm({ ...form, address: e.target.value })}
+          />
         </ModalField>
         <ModalField label="Phone">
-          <input className="input-field" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} />
+          <input
+            className="input-field"
+            value={form.phone}
+            onChange={(e) => setForm({ ...form, phone: e.target.value })}
+          />
         </ModalField>
       </ModalForm>
 
-      {selected && (
-        <>
-          <div className="fixed inset-0 z-40 bg-black/30" onClick={() => setSelected(null)} />
-          <div className="fixed inset-y-0 right-0 z-50 flex w-full max-w-sm flex-col bg-white shadow-xl">
-            <div className="flex items-center justify-between border-b border-[#e2e8f0] px-5 py-4">
-              <h3 className="text-base font-semibold text-[#0f172a]">{selected.name}</h3>
-              <button type="button" onClick={() => setSelected(null)} className="text-[#64748b]"><X className="h-5 w-5" /></button>
-            </div>
-            <div className="flex-1 overflow-auto p-5">
-              {statsLoading ? (
-                <div className="flex justify-center py-12"><Loader2 className="h-6 w-6 animate-spin text-[#64748b]" /></div>
-              ) : stats ? (
-                <div className="space-y-4">
-                  <div className="card border-l-4 border-l-blue-500">
-                    <div className="flex items-center gap-3">
-                      <ShoppingCart className="h-5 w-5 text-[#64748b]" />
-                      <div>
-                        <p className="text-2xl font-bold text-[#0f172a]">{stats.orderCount}</p>
-                        <p className="text-xs text-[#64748b]">Completed Orders</p>
-                      </div>
-                    </div>
-                  </div>
-                  <div className="card border-l-4 border-l-emerald-500">
-                    <div className="flex items-center gap-3">
-                      <DollarSign className="h-5 w-5 text-[#64748b]" />
-                      <div>
-                        <p className="text-2xl font-bold text-[#0f172a]">{formatRM(stats.revenue)}</p>
-                        <p className="text-xs text-[#64748b]">Total Revenue</p>
-                      </div>
-                    </div>
-                  </div>
-                  <div className="card border-l-4 border-l-purple-500">
-                    <div className="flex items-center gap-3">
-                      <Users className="h-5 w-5 text-[#64748b]" />
-                      <div>
-                        <p className="text-2xl font-bold text-[#0f172a]">{stats.staffCount}</p>
-                        <p className="text-xs text-[#64748b]">Staff Members</p>
-                      </div>
-                    </div>
-                  </div>
-                  {selected.address && (
-                    <p className="text-sm text-[#64748b]"><MapPin className="mr-1 inline h-4 w-4" />{selected.address}</p>
-                  )}
-                  {selected.phone && (
-                    <p className="text-sm text-[#64748b]"><Phone className="mr-1 inline h-4 w-4" />{selected.phone}</p>
-                  )}
-                </div>
-              ) : null}
-            </div>
+      <Modal
+        open={!!deleteConfirm}
+        onClose={() => {
+          setDeleteConfirm(null);
+          setDeleteError(null);
+        }}
+        title={deleteMode === "deactivate" ? "Deactivate branch?" : "Delete branch?"}
+        size="narrow"
+        footer={
+          <>
+            <ModalCancelButton
+              onClick={() => {
+                setDeleteConfirm(null);
+                setDeleteError(null);
+              }}
+            />
+            <button
+              type="button"
+              disabled={deleting || (deleteMode === "deactivate" && !!deleteConfirm && isLastActiveBranch(deleteConfirm))}
+              onClick={() => void handleDeleteOrDeactivate()}
+              className={deleteMode === "deactivate" ? "btn-primary" : "btn-danger"}
+            >
+              {deleting ? (
+                <Loader2 className="mx-auto h-4 w-4 animate-spin" />
+              ) : deleteMode === "deactivate" ? (
+                "Deactivate"
+              ) : (
+                "Delete"
+              )}
+            </button>
+          </>
+        }
+      >
+        {deleteError && (
+          <div className="mb-3 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-600">
+            {deleteError}
           </div>
-        </>
-      )}
+        )}
+        <p className="text-sm text-[#64748b]">{deleteMessage}</p>
+      </Modal>
     </div>
   );
 }
