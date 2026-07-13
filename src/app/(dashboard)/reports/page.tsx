@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
 import {
   Bar,
   BarChart,
@@ -22,6 +22,8 @@ import {
   Users,
 } from "lucide-react";
 import { ErrorBanner } from "@/components/ErrorBanner";
+import { useBranchViewFilter } from "@/hooks/useBranchViewFilter";
+import { isBranchScopedView } from "@/lib/branch-view";
 import { supabase } from "@/lib/supabase";
 import {
   formatRM,
@@ -69,6 +71,22 @@ function buildLastSevenDays(endDateKey: string) {
 }
 
 export default function ReportsPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex justify-center py-24">
+          <Loader2 className="h-6 w-6 animate-spin text-[#64748b]" />
+        </div>
+      }
+    >
+      <ReportsPageContent />
+    </Suspense>
+  );
+}
+
+function ReportsPageContent() {
+  const { branchView } = useBranchViewFilter();
+  const branchScoped = isBranchScopedView(branchView);
   const [orders, setOrders] = useState<Order[]>([]);
   const [orderItems, setOrderItems] = useState<OrderItem[]>([]);
   const [topMembers, setTopMembers] = useState<Member[]>([]);
@@ -88,19 +106,33 @@ export default function ReportsPage() {
     const from = `${dateFrom}T00:00:00`;
     const to = `${dateTo}T23:59:59`;
 
+    let ordersQuery = supabase
+      .from("orders")
+      .select("*")
+      .gte("created_at", from)
+      .lte("created_at", to)
+      .eq("status", "completed");
+
+    let membersCountQuery = supabase
+      .from("members")
+      .select("id", { count: "exact", head: true });
+
+    let topMembersQuery = supabase
+      .from("members")
+      .select("*")
+      .order("total_spend", { ascending: false })
+      .limit(5);
+
+    if (branchScoped) {
+      ordersQuery = ordersQuery.eq("branch_id", branchView);
+      membersCountQuery = membersCountQuery.eq("branch_id", branchView);
+      topMembersQuery = topMembersQuery.eq("branch_id", branchView);
+    }
+
     const [ordersRes, membersRes, topMembersRes] = await Promise.all([
-      supabase
-        .from("orders")
-        .select("*")
-        .gte("created_at", from)
-        .lte("created_at", to)
-        .eq("status", "completed"),
-      supabase.from("members").select("id", { count: "exact", head: true }),
-      supabase
-        .from("members")
-        .select("*")
-        .order("total_spend", { ascending: false })
-        .limit(5),
+      ordersQuery,
+      membersCountQuery,
+      topMembersQuery,
     ]);
 
     if (ordersRes.error) {
@@ -139,7 +171,7 @@ export default function ReportsPage() {
     if (itemsRes.error) setError(itemsRes.error.message);
     setOrderItems((itemsRes.data ?? []) as OrderItem[]);
     setLoading(false);
-  }, [dateFrom, dateTo]);
+  }, [dateFrom, dateTo, branchView, branchScoped]);
 
   useEffect(() => {
     void fetchData();
@@ -222,24 +254,28 @@ export default function ReportsPage() {
       value: formatRM(kpis.revenue),
       icon: DollarSign,
       border: "border-l-blue-500",
+      hint: branchScoped ? "This branch" : undefined,
     },
     {
       label: "Orders",
       value: kpis.count.toString(),
       icon: ShoppingCart,
       border: "border-l-emerald-500",
+      hint: branchScoped ? "This branch" : undefined,
     },
     {
       label: "Avg Order",
       value: formatRM(kpis.avg),
       icon: BarChart3,
       border: "border-l-purple-500",
+      hint: branchScoped ? "This branch" : undefined,
     },
     {
-      label: "Members",
+      label: branchScoped ? "Branch Members" : "Members",
       value: kpis.members.toString(),
       icon: Users,
       border: "border-l-amber-500",
+      hint: branchScoped ? "Assigned to branch" : undefined,
     },
   ];
 
@@ -281,6 +317,9 @@ export default function ReportsPage() {
                   <div>
                     <p className="text-2xl font-bold text-[#0f172a]">{k.value}</p>
                     <p className="mt-1 text-xs text-[#64748b]">{k.label}</p>
+                    {k.hint && (
+                      <p className="mt-0.5 text-[10px] text-[#94a3b8]">{k.hint}</p>
+                    )}
                   </div>
                   <k.icon className="h-4 w-4 text-[#cbd5e1]" />
                 </div>
@@ -295,6 +334,7 @@ export default function ReportsPage() {
                   <h3 className="text-sm font-medium text-[#0f172a]">7-Day Revenue</h3>
                   <p className="mt-1 text-xs text-[#64748b]">
                     Last 7 days ending {formatChartDateLabel(dateTo)}, {dateTo}
+                    {branchScoped ? " · selected branch" : ""}
                   </p>
                 </div>
                 <p className="text-sm font-semibold text-[#2563eb]">
@@ -335,6 +375,7 @@ export default function ReportsPage() {
                 <h3 className="text-sm font-medium text-[#0f172a]">Payment Breakdown</h3>
                 <p className="mt-1 text-xs text-[#64748b]">
                   Selected range {dateFrom} to {dateTo}
+                  {branchScoped ? " · selected branch" : ""}
                 </p>
               </div>
               {paymentChartTotal === 0 ? (
@@ -416,6 +457,9 @@ export default function ReportsPage() {
                 <h3 className="text-sm font-medium text-[#0f172a]">Top Products</h3>
                 <p className="mt-0.5 text-xs text-[#64748b]">
                   By revenue in selected range
+                  {branchScoped
+                    ? " · sales at this branch (global catalog)"
+                    : ""}
                 </p>
               </div>
               {topProducts.length === 0 ? (
@@ -455,7 +499,9 @@ export default function ReportsPage() {
               <div className="border-b border-[#e2e8f0] px-4 py-3">
                 <h3 className="text-sm font-medium text-[#0f172a]">Top Members</h3>
                 <p className="mt-0.5 text-xs text-[#64748b]">
-                  By lifetime total spend
+                  {branchScoped
+                    ? "Assigned to branch · lifetime spend (may include other branches)"
+                    : "By lifetime total spend"}
                 </p>
               </div>
               {topMembers.length === 0 ? (

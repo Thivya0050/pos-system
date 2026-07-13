@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useState } from "react";
+import { Suspense, useCallback, useEffect, useState } from "react";
 import {
   AlertTriangle,
   ArrowRight,
@@ -15,6 +15,8 @@ import {
   Users,
 } from "lucide-react";
 import { ErrorBanner } from "@/components/ErrorBanner";
+import { useBranchViewFilter } from "@/hooks/useBranchViewFilter";
+import { isBranchScopedView } from "@/lib/branch-view";
 import { getSession } from "@/lib/auth";
 import { supabase } from "@/lib/supabase";
 import {
@@ -28,7 +30,23 @@ import {
 import type { Member, Order, Product } from "@/types/database";
 
 export default function DashboardPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex h-full justify-center py-24">
+          <Loader2 className="h-6 w-6 animate-spin text-[#64748b]" />
+        </div>
+      }
+    >
+      <DashboardPageContent />
+    </Suspense>
+  );
+}
+
+function DashboardPageContent() {
   const session = getSession();
+  const { branchView } = useBranchViewFilter();
+  const branchScoped = isBranchScopedView(branchView);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [todaySales, setTodaySales] = useState(0);
@@ -44,12 +62,21 @@ export default function DashboardPage() {
     setError(null);
     const todayStart = getTodayStart().toISOString();
 
+    let ordersQuery = supabase
+      .from("orders")
+      .select("*, members(name)")
+      .order("created_at", { ascending: false });
+
+    let membersQuery = supabase.from("members").select("*");
+
+    if (branchScoped) {
+      ordersQuery = ordersQuery.eq("branch_id", branchView);
+      membersQuery = membersQuery.eq("branch_id", branchView);
+    }
+
     const [ordersRes, membersRes, productsRes] = await Promise.all([
-      supabase
-        .from("orders")
-        .select("*, members(name)")
-        .order("created_at", { ascending: false }),
-      supabase.from("members").select("*"),
+      ordersQuery,
+      membersQuery,
       supabase.from("products").select("*").order("name"),
     ]);
 
@@ -78,7 +105,7 @@ export default function DashboardPage() {
     });
     setMemberMap(map);
     setLoading(false);
-  }, []);
+  }, [branchView, branchScoped]);
 
   useEffect(() => {
     fetchData();
@@ -90,24 +117,28 @@ export default function DashboardPage() {
       value: formatRM(todaySales),
       border: "border-l-blue-500",
       icon: DollarSign,
+      hint: branchScoped ? "This branch" : undefined,
     },
     {
       label: "Orders Today",
       value: ordersToday.toString(),
       border: "border-l-emerald-500",
       icon: ShoppingCart,
+      hint: branchScoped ? "This branch" : undefined,
     },
     {
-      label: "Total Members",
+      label: branchScoped ? "Branch Members" : "Total Members",
       value: totalMembers.toString(),
       border: "border-l-purple-500",
       icon: Users,
+      hint: branchScoped ? "Assigned to branch" : undefined,
     },
     {
       label: "Low Stock Items",
       value: lowStockCount.toString(),
       border: "border-l-amber-500",
       icon: AlertTriangle,
+      hint: "Global catalog",
     },
   ];
 
@@ -154,6 +185,9 @@ export default function DashboardPage() {
                   <div>
                     <p className="text-2xl font-bold text-[#0f172a]">{k.value}</p>
                     <p className="mt-1 text-xs text-[#64748b]">{k.label}</p>
+                    {k.hint && (
+                      <p className="mt-0.5 text-[10px] text-[#94a3b8]">{k.hint}</p>
+                    )}
                   </div>
                   <k.icon className="h-4 w-4 text-[#cbd5e1]" />
                 </div>
@@ -165,6 +199,9 @@ export default function DashboardPage() {
             <div className="card overflow-hidden p-0">
               <div className="border-b border-[#e2e8f0] px-4 py-3">
                 <h3 className="text-sm font-medium text-[#0f172a]">Recent Orders</h3>
+                {branchScoped && (
+                  <p className="mt-0.5 text-xs text-[#64748b]">Filtered to selected branch</p>
+                )}
               </div>
               {recentOrders.length === 0 ? (
                 <div className="flex flex-col items-center py-12 text-[#64748b]">
@@ -211,6 +248,9 @@ export default function DashboardPage() {
             <div className="card overflow-hidden p-0">
               <div className="border-b border-[#e2e8f0] px-4 py-3">
                 <h3 className="text-sm font-medium text-[#0f172a]">Stock Alerts</h3>
+                <p className="mt-0.5 text-xs text-[#64748b]">
+                  Global inventory — not branch-specific
+                </p>
               </div>
               {lowStock.length === 0 ? (
                 <div className="flex flex-col items-center py-12 text-[#64748b]">

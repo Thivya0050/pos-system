@@ -3,7 +3,9 @@
 import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 import { ChevronRight } from "lucide-react";
+import BranchViewToggle from "@/components/BranchViewToggle";
 import { getSession } from "@/lib/auth";
+import { isAdminSession } from "@/lib/branch-view";
 import { supabase } from "@/lib/supabase";
 
 const pageTitles: Record<string, string> = {
@@ -18,10 +20,14 @@ const pageTitles: Record<string, string> = {
   "/settings": "Settings",
 };
 
+const BRANCH_VIEW_PAGES = new Set(["/dashboard", "/reports"]);
+
 export default function PageHeader() {
   const pathname = usePathname();
   const title = pageTitles[pathname] ?? "Dashboard";
   const session = getSession();
+  const isAdmin = isAdminSession(session);
+  const showBranchToggle = isAdmin && BRANCH_VIEW_PAGES.has(pathname);
   const [branchName, setBranchName] = useState("Main Branch");
   const [time, setTime] = useState("");
 
@@ -44,6 +50,7 @@ export default function PageHeader() {
   }, []);
 
   useEffect(() => {
+    if (showBranchToggle) return;
     if (!session?.branchId) return;
     void (async () => {
       const { data } = await supabase
@@ -54,7 +61,7 @@ export default function PageHeader() {
       const branch = data as { name?: string } | null;
       if (branch?.name) setBranchName(branch.name);
     })();
-  }, [session?.branchId]);
+  }, [session?.branchId, showBranchToggle]);
 
   return (
     <header className="flex h-14 shrink-0 items-center justify-between border-b border-[#e2e8f0] bg-white px-6">
@@ -64,7 +71,7 @@ export default function PageHeader() {
         <h1 className="text-base font-semibold text-[#0f172a]">{title}</h1>
       </div>
       <div className="flex items-center gap-4 text-sm text-[#64748b]">
-        <span>{branchName}</span>
+        {showBranchToggle ? <BranchViewToggle /> : <span>{branchName}</span>}
         <span className="text-[#94a3b8]">|</span>
         <span>{time}</span>
       </div>
