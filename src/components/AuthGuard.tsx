@@ -3,29 +3,20 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Loader2 } from "lucide-react";
-
-const SESSION_KEY = "pharmapos_session";
+import { getSession } from "@/lib/auth";
 
 export default function AuthGuard({ children }: { children: React.ReactNode }) {
   const router = useRouter();
-  const [ready, setReady] = useState(false);
+  const [ready, setReady] = useState(
+    () => typeof window !== "undefined" && getSession() !== null
+  );
 
   useEffect(() => {
-    try {
-      const raw = localStorage.getItem(SESSION_KEY);
-      if (!raw) {
-        router.replace("/login");
-        return;
-      }
-      const session = JSON.parse(raw) as { isLoggedIn?: boolean };
-      if (session.isLoggedIn === true) {
-        setReady(true);
-      } else {
-        router.replace("/login");
-      }
-    } catch {
-      router.replace("/login");
+    if (getSession()) {
+      setReady(true);
+      return;
     }
+    router.replace("/login");
   }, [router]);
 
   if (!ready) {

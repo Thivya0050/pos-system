@@ -2,19 +2,27 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Loader2, Pill, Shield, Users } from "lucide-react";
+import {
+  ArrowRight,
+  Building2,
+  Loader2,
+  Pill,
+  Users,
+  Zap,
+} from "lucide-react";
 import { getSession, setSession } from "@/lib/auth";
+import "./login.css";
 
 const VALID_CREDENTIALS = [
   { email: "admin@pharmapos.com", password: "admin123" },
   { email: "admin@pos.com", password: "admin123" },
 ];
 
-const features = [
-  { icon: Pill, text: "Fast cashier with member pricing & promotions" },
-  { icon: Users, text: "Member loyalty with tiered points & vouchers" },
-  { icon: Shield, text: "Prescription tracking & branch management" },
-];
+const FEATURE_CHIPS = [
+  { icon: Zap, label: "Fast cashier" },
+  { icon: Users, label: "Member loyalty" },
+  { icon: Building2, label: "Multi-branch" },
+] as const;
 
 function isValidLogin(email: string, password: string) {
   const normalizedEmail = email.trim().toLowerCase();
@@ -27,6 +35,7 @@ export default function LoginPage() {
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [keepSignedIn, setKeepSignedIn] = useState(true);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -36,7 +45,6 @@ export default function LoginPage() {
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    console.log("Login attempt:", { email, password });
     setError("");
     setLoading(true);
 
@@ -45,9 +53,9 @@ export default function LoginPage() {
         isLoggedIn: true,
         role: "admin",
         name: "Admin",
-        email: "admin@pharmapos.com",
+        email: email.trim().toLowerCase(),
       });
-      window.location.href = "/dashboard";
+      router.replace("/dashboard");
       return;
     }
 
@@ -56,93 +64,136 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="flex min-h-screen">
-      <div className="hidden w-1/2 flex-col justify-between bg-[#1e293b] p-12 text-white lg:flex">
-        <div>
-          <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-600">
-              <Pill className="h-5 w-5" />
-            </div>
-            <span className="text-2xl font-semibold">PharmaPOS</span>
-          </div>
-          <p className="mt-6 max-w-sm text-slate-300">
-            Modern pharmacy point of sale with member loyalty, promotions, and
-            multi-branch support.
-          </p>
-        </div>
-        <ul className="space-y-4">
-          {features.map(({ icon: Icon, text }) => (
-            <li key={text} className="flex items-center gap-3 text-sm text-slate-300">
-              <Icon className="h-4 w-4 shrink-0 text-blue-400" />
-              {text}
-            </li>
-          ))}
-        </ul>
+    <div className="login-page">
+      <div className="login-bg" aria-hidden="true">
+        <div className="login-bg-glow-blue" />
+        <div className="login-bg-glow-teal" />
+        <div className="login-bg-dots" />
+        <span className="login-bg-rx login-bg-rx--tl">℞</span>
+        <span className="login-bg-rx login-bg-rx--br">℞</span>
       </div>
 
-      <div className="flex w-full flex-col items-center justify-center bg-white px-6 lg:w-1/2">
-        <div className="w-full max-w-sm">
-          <div className="mb-8 lg:hidden">
-            <div className="flex items-center gap-2">
-              <Pill className="h-6 w-6 text-blue-600" />
-              <span className="text-xl font-semibold text-[#0f172a]">PharmaPOS</span>
+      <div className="login-shell">
+        <header className="login-topbar">
+          <div className="login-brand">
+            <div className="login-brand-mark" aria-hidden="true">
+              <Pill className="h-5 w-5 text-white" />
             </div>
-          </div>
-          <h1 className="text-2xl font-semibold text-[#0f172a]">Sign in</h1>
-          <p className="mt-1 text-sm text-[#64748b]">
-            Enter your credentials to access the dashboard
+            <span className="login-brand-wordmark">
+              <span className="login-brand-wordmark-pharma">Pharma</span>
+              <span className="login-brand-wordmark-pos">POS</span>
+            </span>
+        </div>
+      </header>
+
+        <main className="login-main">
+          <div className="login-column">
+          <p className="login-eyebrow">PHARMACY DASHBOARD</p>
+          <h1 className="login-headline">
+            Welcome <span className="login-headline-accent">back</span>
+          </h1>
+          <p className="login-subhead">
+            Sign in to manage sales, members, and inventory across your branches.
           </p>
 
-          <form onSubmit={handleSubmit} className="mt-8 space-y-4">
-            <div>
-              <label className="mb-1.5 block text-sm font-medium text-[#0f172a]">
-                Email
-              </label>
-              <input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="admin@pharmapos.com"
-                required
-                disabled={loading}
-                className="input-field disabled:opacity-60"
-              />
+          <div className="login-card">
+            <div className="login-card-bar" aria-hidden="true" />
+            <div className="login-demo-tag" aria-hidden="true">
+              <span className="login-demo-tag-icon">+</span>
+              <span className="login-demo-tag-label">Demo mode</span>
             </div>
-            <div>
-              <label className="mb-1.5 block text-sm font-medium text-[#0f172a]">
-                Password
-              </label>
-              <input
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-                disabled={loading}
-                className="input-field disabled:opacity-60"
-              />
-            </div>
-            <button
-              type="submit"
-              disabled={loading}
-              className="btn-primary flex w-full items-center justify-center gap-2 py-2.5 text-sm"
-            >
-              {loading ? (
-                <>
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                  Signing in...
-                </>
-              ) : (
-                "Sign in"
+
+            <form onSubmit={handleSubmit} noValidate className="login-form">
+              <div className="login-field">
+                <label className="login-label" htmlFor="login-email">
+                  Email
+                </label>
+                <input
+                  id="login-email"
+                  type="email"
+                  autoComplete="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="admin@pharmapos.com"
+                  required
+                  disabled={loading}
+                  className="login-input"
+                />
+              </div>
+
+              <div className="login-field">
+                <label className="login-label" htmlFor="login-password">
+                  Password
+                </label>
+                <input
+                  id="login-password"
+                  type="password"
+                  autoComplete="current-password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                  disabled={loading}
+                  className="login-input"
+                />
+              </div>
+
+              <div className="login-row">
+                <label className="login-checkbox-label">
+                  <input
+                    type="checkbox"
+                    className="login-checkbox"
+                    checked={keepSignedIn}
+                    onChange={(e) => setKeepSignedIn(e.target.checked)}
+                    disabled={loading}
+                  />
+                  Keep me signed in
+                </label>
+                <button type="button" className="login-forgot">
+                  Forgot password?
+                </button>
+              </div>
+
+              <button type="submit" disabled={loading} className="login-submit">
+                {loading ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
+                    Signing in...
+                  </>
+                ) : (
+                  <>
+                    Sign in
+                    <ArrowRight className="h-4 w-4" aria-hidden="true" />
+                  </>
+                )}
+              </button>
+
+              {error && (
+                <p className="login-error" role="alert">
+                  {error}
+                </p>
               )}
-            </button>
-            {error && (
-              <p className="text-center text-sm text-red-600">{error}</p>
-            )}
-            <p className="text-center text-xs text-[#94a3b8]">
-              Demo: admin@pharmapos.com / admin123
-            </p>
-          </form>
+
+              <div className="login-divider">
+                <span>DEMO CREDENTIALS</span>
+              </div>
+              <p className="login-demo-creds">
+                admin@pharmapos.com
+                <br />
+                admin123
+              </p>
+            </form>
+          </div>
+
+          <div className="login-chips">
+            {FEATURE_CHIPS.map(({ icon: Icon, label }) => (
+              <span key={label} className="login-chip">
+                <Icon className="login-chip-icon h-3.5 w-3.5" aria-hidden="true" />
+                {label}
+              </span>
+            ))}
+          </div>
         </div>
+      </main>
       </div>
     </div>
   );
