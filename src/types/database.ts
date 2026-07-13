@@ -137,6 +137,17 @@ export interface MemberVoucher {
   promotions?: Promotion | null;
 }
 
+export type StaffCallStatus = "pending" | "acknowledged" | "resolved";
+
+export interface StaffCall {
+  id: string;
+  branch_id: string;
+  kiosk_session_id: string;
+  reason: string | null;
+  status: StaffCallStatus;
+  created_at: string;
+}
+
 export interface Database {
   public: {
     Tables: {
@@ -150,6 +161,7 @@ export interface Database {
       order_items: { Row: OrderItem; Insert: Omit<OrderItem, "id" | "created_at"> & { id?: string; created_at?: string }; Update: Partial<OrderItem> };
       points_history: { Row: PointsHistory; Insert: Omit<PointsHistory, "id" | "created_at"> & { id?: string; created_at?: string }; Update: Partial<PointsHistory> };
       member_vouchers: { Row: MemberVoucher; Insert: Omit<MemberVoucher, "id" | "created_at" | "promotions"> & { id?: string; created_at?: string }; Update: Partial<Omit<MemberVoucher, "promotions">> };
+      staff_calls: { Row: StaffCall; Insert: Omit<StaffCall, "id" | "created_at"> & { id?: string; created_at?: string }; Update: Partial<StaffCall> };
     };
     Views: Record<string, never>;
     Functions: Record<string, never>;
