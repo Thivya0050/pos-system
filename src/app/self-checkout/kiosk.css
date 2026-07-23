@@ -7,6 +7,14 @@
   --kiosk-border: #e2e8f0;
   --kiosk-tap-min: 48px;
   --kiosk-tap-primary: 64px;
+  /* Older WebViews: vh. Modern engines: dvh via @supports (survives CSS minify). */
+  height: 100vh;
+}
+
+@supports (height: 100dvh) {
+  .kiosk-root {
+    height: 100dvh;
+  }
 }
 
 .kiosk-page {
@@ -587,6 +595,14 @@
   .kiosk-staff-call-btn {
     right: 16px;
     bottom: calc(42vh + 16px);
+  }
+}
+
+/* Landscape: clear the right cart panel (clamp matches cart min/width/max) */
+@media (orientation: landscape) {
+  .kiosk-staff-call-btn {
+    right: calc(clamp(320px, 38vw, 520px) + 20px);
+    bottom: 20px;
   }
 }
 

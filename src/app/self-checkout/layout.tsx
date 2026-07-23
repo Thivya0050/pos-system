@@ -11,7 +11,7 @@ export default function SelfCheckoutLayout({
   children: React.ReactNode;
 }) {
   return (
-    <div className="kiosk-root h-dvh w-full overflow-hidden bg-[#f1f5f9]">
+    <div className="kiosk-root w-full overflow-hidden bg-[#f1f5f9]">
       {children}
     </div>
   );

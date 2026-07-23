@@ -1,0 +1,140 @@
+[
+  {
+    "id": "device1-win11-portrait-1080x1920",
+    "orientation": "portrait",
+    "portraitMediaMatches": true,
+    "bodyOverflowX": false,
+    "documentMatchesViewport": true,
+    "rootHeightPx": 1920,
+    "rootMatchesViewportHeight": true,
+    "heightDeclsOnKioskRoot": [
+      "100vh",
+      "supports:100dvh"
+    ],
+    "hasSupportsDvhOverride": true,
+    "pay": {
+      "top": 1836,
+      "bottom": 1900,
+      "left": 388,
+      "right": 1060,
+      "width": 672,
+      "height": 64
+    },
+    "staff": {
+      "top": 1034,
+      "bottom": 1098,
+      "left": 891,
+      "right": 1064,
+      "width": 173,
+      "height": 64
+    },
+    "cart": {
+      "top": 1467,
+      "bottom": 1920,
+      "left": 0,
+      "right": 1080,
+      "width": 1080,
+      "height": 453
+    },
+    "staffOverlapsPay": false,
+    "overlapAreaPx": 0,
+    "viewport": {
+      "width": 1080,
+      "height": 1920,
+      "dpr": 1
+    },
+    "screenshot": "C:\\Users\\tech1\\Downloads\\pos-system\\docs\\kiosk-verify\\device1-win11-portrait-1080x1920-fixed.png"
+  },
+  {
+    "id": "device2-android-landscape-1920x1080",
+    "orientation": "landscape",
+    "portraitMediaMatches": false,
+    "bodyOverflowX": false,
+    "documentMatchesViewport": true,
+    "rootHeightPx": 1080,
+    "rootMatchesViewportHeight": true,
+    "heightDeclsOnKioskRoot": [
+      "100vh",
+      "supports:100dvh"
+    ],
+    "hasSupportsDvhOverride": true,
+    "pay": {
+      "top": 996,
+      "bottom": 1060,
+      "left": 1601,
+      "right": 1900,
+      "width": 299,
+      "height": 64
+    },
+    "staff": {
+      "top": 996,
+      "bottom": 1060,
+      "left": 1207,
+      "right": 1380,
+      "width": 173,
+      "height": 64
+    },
+    "cart": {
+      "top": 77,
+      "bottom": 1080,
+      "left": 1400,
+      "right": 1920,
+      "width": 520,
+      "height": 1003
+    },
+    "staffOverlapsPay": false,
+    "overlapAreaPx": 0,
+    "viewport": {
+      "width": 1920,
+      "height": 1080,
+      "dpr": 1
+    },
+    "screenshot": "C:\\Users\\tech1\\Downloads\\pos-system\\docs\\kiosk-verify\\device2-android-landscape-1920x1080-fixed.png"
+  },
+  {
+    "id": "device3-android-portrait-1080x1920",
+    "orientation": "portrait",
+    "portraitMediaMatches": true,
+    "bodyOverflowX": false,
+    "documentMatchesViewport": true,
+    "rootHeightPx": 1920,
+    "rootMatchesViewportHeight": true,
+    "heightDeclsOnKioskRoot": [
+      "100vh",
+      "supports:100dvh"
+    ],
+    "hasSupportsDvhOverride": true,
+    "pay": {
+      "top": 1836,
+      "bottom": 1900,
+      "left": 388,
+      "right": 1060,
+      "width": 672,
+      "height": 64
+    },
+    "staff": {
+      "top": 1034,
+      "bottom": 1098,
+      "left": 891,
+      "right": 1064,
+      "width": 173,
+      "height": 64
+    },
+    "cart": {
+      "top": 1467,
+      "bottom": 1920,
+      "left": 0,
+      "right": 1080,
+      "width": 1080,
+      "height": 453
+    },
+    "staffOverlapsPay": false,
+    "overlapAreaPx": 0,
+    "viewport": {
+      "width": 1080,
+      "height": 1920,
+      "dpr": 1
+    },
+    "screenshot": "C:\\Users\\tech1\\Downloads\\pos-system\\docs\\kiosk-verify\\device3-android-portrait-1080x1920-fixed.png"
+  }
+]

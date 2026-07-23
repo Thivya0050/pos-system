@@ -1,0 +1,119 @@
+[
+  {
+    "id": "device1-win11-portrait-1080x1920",
+    "orientation": "portrait",
+    "portraitMediaMatches": true,
+    "documentScrollWidth": 1080,
+    "documentScrollHeight": 1920,
+    "clientWidth": 1080,
+    "clientHeight": 1920,
+    "bodyOverflowX": false,
+    "bodyOverflowY": false,
+    "kioskRootOverflowX": false,
+    "kioskRootOverflowY": false,
+    "cartPane": {
+      "exists": true,
+      "top": 1467,
+      "bottom": 1920,
+      "height": 453,
+      "width": 1080,
+      "withinViewport": true,
+      "thumbZoneReachable": true
+    },
+    "payButton": {
+      "exists": true,
+      "bottom": 1900,
+      "cutOff": false
+    },
+    "staffCallBtn": {
+      "exists": true,
+      "bottom": 1098,
+      "cutOff": false
+    },
+    "cutOffButtons": [],
+    "notes": [],
+    "viewport": {
+      "width": 1080,
+      "height": 1920,
+      "dpr": 1
+    }
+  },
+  {
+    "id": "device2-android-landscape-1920x1080",
+    "orientation": "landscape",
+    "portraitMediaMatches": false,
+    "documentScrollWidth": 1920,
+    "documentScrollHeight": 1080,
+    "clientWidth": 1920,
+    "clientHeight": 1080,
+    "bodyOverflowX": false,
+    "bodyOverflowY": false,
+    "kioskRootOverflowX": false,
+    "kioskRootOverflowY": false,
+    "cartPane": {
+      "exists": true,
+      "top": 77,
+      "bottom": 1080,
+      "height": 1003,
+      "width": 520,
+      "withinViewport": true,
+      "thumbZoneReachable": true
+    },
+    "payButton": {
+      "exists": true,
+      "bottom": 1060,
+      "cutOff": false
+    },
+    "staffCallBtn": {
+      "exists": true,
+      "bottom": 1060,
+      "cutOff": false
+    },
+    "cutOffButtons": [],
+    "notes": [],
+    "viewport": {
+      "width": 1920,
+      "height": 1080,
+      "dpr": 1
+    }
+  },
+  {
+    "id": "device3-android-portrait-1080x1920",
+    "orientation": "portrait",
+    "portraitMediaMatches": true,
+    "documentScrollWidth": 1080,
+    "documentScrollHeight": 1920,
+    "clientWidth": 1080,
+    "clientHeight": 1920,
+    "bodyOverflowX": false,
+    "bodyOverflowY": false,
+    "kioskRootOverflowX": false,
+    "kioskRootOverflowY": false,
+    "cartPane": {
+      "exists": true,
+      "top": 1467,
+      "bottom": 1920,
+      "height": 453,
+      "width": 1080,
+      "withinViewport": true,
+      "thumbZoneReachable": true
+    },
+    "payButton": {
+      "exists": true,
+      "bottom": 1900,
+      "cutOff": false
+    },
+    "staffCallBtn": {
+      "exists": true,
+      "bottom": 1098,
+      "cutOff": false
+    },
+    "cutOffButtons": [],
+    "notes": [],
+    "viewport": {
+      "width": 1080,
+      "height": 1920,
+      "dpr": 1
+    }
+  }
+]
